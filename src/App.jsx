@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import CreateProject from './pages/Projects/CreateProject';
 import ScheduleProject from './pages/Projects/ScheduleProject';
@@ -19,13 +20,10 @@ import TaskList from './pages/Tasks/TaskList';
 
 export default function App(){
   return (
-    <div>
-      <nav>
-        <Link to="/">Dashboard</Link> | <Link to="/login">Login</Link>
-      </nav>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/login" element={<Login />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/projects/create" element={<CreateProject />} />
         <Route path="/projects/schedule" element={<ScheduleProject />} />
         <Route path="/projects/track" element={<TrackProject />} />
@@ -41,6 +39,5 @@ export default function App(){
         <Route path="/tasks/create" element={<CreateTask />} />
         <Route path="/tasks/list" element={<TaskList />} />
       </Routes>
-    </div>
   );
 }
