@@ -220,9 +220,8 @@ function ProcurementManagementContent() {
 
     try {
       setUploading(true);
-      await api.post('/procurement/upload-proof', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      await api.post('/procurement/upload-proof', formData);
+
 
       setAction(null);
       setTargetId(null);

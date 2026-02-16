@@ -1,12 +1,6 @@
 'use client';
 
-import React, {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
-
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import api from '@/components/lib/api';
 import FlatSelect from '@/components/reusable/ui/FlatSelect';
 
@@ -19,10 +13,13 @@ interface ProcurementItem {
   amount: string;
   status: string;
   createdAt: string;
-  latestDecision?: string;
-  latestRemark?: string;
 
   createdBy?: { fullName: string };
+
+  allocation?: {
+    classification?: { name: string };
+    objectOfExpenditure?: { name: string };
+  } | null;
 
   items: {
     id: number;
@@ -30,13 +27,6 @@ interface ProcurementItem {
     quantity: number;
     unitCost: string;
     totalPrice: string;
-  }[];
-
-  approvals: {
-    id: number;
-    status: string;
-    remarks?: string | null;
-    createdAt: string;
   }[];
 }
 
@@ -72,8 +62,6 @@ const MONTH_OPTIONS = [
   })),
 ];
 
-/* ================= COMPONENT ================= */
-
 const ProcurementReportEditor = () => {
   const editorRef = useRef<HTMLDivElement>(null);
 
@@ -99,7 +87,10 @@ const ProcurementReportEditor = () => {
       setOfficials(officialsRes.data.data ?? []);
 
       const procurementRes = await api.get('/procurement', {
-        params: { status, limit: 999 },
+        params: {
+          status: status === 'ALL' ? undefined : status,
+          limit: 999,
+        },
       });
 
       setData(procurementRes.data.data ?? []);
@@ -109,7 +100,10 @@ const ProcurementReportEditor = () => {
     load();
   }, [status]);
 
-  /* ================= FILTER ================= */
+  const getOfficial = (pos: string) =>
+    officials.find(o => o.position === pos && o.isActive)?.fullName;
+
+  /* ================= FILTER BY MONTH ================= */
 
   const filteredData = useMemo(() => {
     if (month === 'ALL') return data;
@@ -118,307 +112,191 @@ const ProcurementReportEditor = () => {
     );
   }, [data, month]);
 
-  const getOfficial = (pos: string) =>
-    officials.find(o => o.position === pos && o.isActive)?.fullName;
+  /* ================= GRAND TOTAL ================= */
+
+  const grandTotal = useMemo(() => {
+    return filteredData.reduce((sum, p) => sum + Number(p.amount), 0);
+  }, [filteredData]);
 
   /* ================= WORD EXPORT ================= */
 
-const downloadWord = () => {
-  if (!editorRef.current) return;
+  const downloadWord = () => {
+    if (!editorRef.current) return;
 
-  const html = `
-  <html xmlns:o="urn:schemas-microsoft-com:office:office"
-        xmlns:w="urn:schemas-microsoft-com:office:word"
-        xmlns="http://www.w3.org/TR/REC-html40">
-    <head>
-      <meta charset="utf-8" />
+    const html = `
+      <html>
+      <head>
+        <meta charset="utf-8" />
+        <style>
+          body { font-family: Arial; font-size: 11pt; }
+          table { width: 100%; border-collapse: collapse; }
+          th, td { border: 1px solid #000; padding: 6px; }
+          th { background: #f2f2f2; }
+          .signatories { margin-top: 60px; text-align: center; }
+          .signatories td { border: none; padding: 40px 20px 0; }
+        </style>
+      </head>
+      <body>
 
-      <style>
-        @page {
-          size: A4;
-          margin: 25mm 20mm 25mm 20mm;
-        }
-
-        body {
-          font-family: Arial, sans-serif;
-          font-size: 11pt;
-          line-height: 1.4;
-        }
-
-        /* HEADER */
-        .header {
-          text-align: center;
-          font-size: 11pt;
-          line-height: 1.4;
-          margin-bottom: 24px;
-        }
-
-        .header p {
-          margin: 2px 0;
-        }
-
-        .header .title {
-          margin-top: 24px;
-          font-weight: bold;
-        }
-
-        .header .subtitle {
-          margin-top: 16px;
-          font-size: 10pt;
-        }
-
-        /* DATA TABLES */
-        table.data {
-          width: 100%;
-          border-collapse: collapse;
-          margin: 24px 0;
-        }
-
-        table.data th,
-        table.data td {
-          border: 1px solid #000;
-          padding: 6px;
-          vertical-align: top;
-          font-size: 11pt;
-        }
-
-        table.data th {
-          background: #f2f2f2;
-          font-weight: bold;
-          text-align: center;
-        }
-
-        /* SIGNATORIES */
-        .signatories {
-          margin-top: 48px;
-          text-align: center;
-        }
-
-        .signatories table {
-          width: 100%;
-          border-collapse: collapse;
-        }
-
-        .signatories td {
-          border: none;
-          padding: 0 12px;
-          vertical-align: top;
-        }
-
-        .signatories p {
-          margin: 4px 0;
-        }
-
-        .signatories .signature-line {
-          margin-top: 48px;
-          font-weight: bold;
-          text-decoration: underline;
-        }
-      </style>
-
-      <xml>
-        <w:WordDocument>
-          <w:View>Print</w:View>
-          <w:Zoom>100</w:Zoom>
-          <w:DoNotOptimizeForBrowser/>
-        </w:WordDocument>
-      </xml>
-    </head>
-
-    <body>
-      <!-- HEADER -->
-      <div class="header">
-        <p>REPUBLIC OF THE PHILIPPINES</p>
-        <p>PROVINCE OF BOHOL</p>
-        <p><strong>${profile?.location ?? ''}</strong></p>
-
-        <div class="title">
-          <p>OFFICE OF THE SANGGUNIANG KABATAAN</p>
-          <p>PROCUREMENT REPORT</p>
+        <div style="text-align:center;">
+          <p>REPUBLIC OF THE PHILIPPINES</p>
+          <p>PROVINCE OF BOHOL</p>
+          <p><strong>${profile?.location ?? ''}</strong></p>
+          <p><strong>PROCUREMENT REPORT</strong></p>
+          <p>Fiscal Year ${profile?.fiscalYear.year ?? ''}</p>
         </div>
 
-        <p class="subtitle">
-          Fiscal Year ${profile?.fiscalYear.year ?? ''} — Status: ${status}
-        </p>
-      </div>
+        ${editorRef.current.innerHTML}
 
-      <!-- CONTENT TABLE -->
-      ${editorRef.current.innerHTML}
+        <div class="signatories">
+          <table>
+            <tr>
+              <td>
+                Prepared By:<br/><br/>
+                <strong>${getOfficial('SK Secretary') || '_________________'}</strong><br/>
+                SK Secretary
+              </td>
+              <td>
+                Noted By:<br/><br/>
+                <strong>${getOfficial('SK Treasurer') || '_________________'}</strong><br/>
+                SK Treasurer
+              </td>
+              <td>
+                Approved By:<br/><br/>
+                <strong>${getOfficial('SK Chairperson') || '_________________'}</strong><br/>
+                SK Chairperson
+              </td>
+            </tr>
+          </table>
+        </div>
 
-      <!-- SIGNATORIES -->
-      <div class="signatories">
-        <table>
-          <tr>
-            ${['SK Secretary', 'SK Treasurer', 'SK Chairperson']
-              .map(
-                pos => `
-                <td>
-                  <p>Prepared / Approved By:</p>
-                  <p class="signature-line">
-                    ${getOfficial(pos) || '________________________'}
-                  </p>
-                  <p>${pos}</p>
-                </td>
-              `
-              )
-              .join('')}
-          </tr>
-        </table>
-      </div>
-    </body>
-  </html>
-  `;
+      </body>
+      </html>
+    `;
 
-  const blob = new Blob(['\ufeff', html], {
-    type: 'application/msword',
-  });
+    const blob = new Blob(['\ufeff', html], {
+      type: 'application/msword',
+    });
 
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'SK_Procurement_Report.doc';
-  a.click();
-  URL.revokeObjectURL(a.href);
-};
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'Procurement_Report.doc';
+    a.click();
+  };
 
-  if (loading) {
-    return (
-      <p className="py-24 text-center text-sm text-gray-500">
-        Loading…
-      </p>
-    );
-  }
+  if (loading) return <p className="py-20 text-center">Loading…</p>;
 
-  /* ================= RENDER ================= */
+  let rowNumber = 0;
 
   return (
     <div className="space-y-10">
 
-      {/* CONTROLS */}
-      <div className="flex justify-center">
-        <div className="flex flex-wrap gap-4 items-end bg-white p-4 rounded-xl shadow-sm">
-          <FlatSelect
-            label="Status"
-            value={status}
-            options={STATUS_OPTIONS}
-            onChange={setStatus}
-          />
+      {/* FILTERS */}
+      <div className="flex justify-center gap-4">
+        <FlatSelect
+          label="Status"
+          value={status}
+          options={STATUS_OPTIONS}
+          onChange={setStatus}
+        />
 
-          <FlatSelect
-            label="Month"
-            value={month}
-            options={MONTH_OPTIONS}
-            onChange={setMonth}
-          />
+        <FlatSelect
+          label="Month"
+          value={month}
+          options={MONTH_OPTIONS}
+          onChange={setMonth}
+        />
 
-          <button
-            onClick={downloadWord}
-            className="h-11 px-6 rounded-xl bg-emerald-600 text-white text-sm hover:bg-emerald-700"
-          >
-            📄 Download Word
-          </button>
-        </div>
+        <button
+          onClick={downloadWord}
+          className="px-6 py-2 bg-emerald-600 text-white rounded-xl"
+        >
+          Download Word
+        </button>
       </div>
 
-      {/* WORD-STYLE DOCUMENT PREVIEW */}
-      <div className="flex justify-center bg-gray-100 py-12">
-        <div
-          className="
-            bg-white
-            w-[794px]
-            min-h-[1123px]
-            p-16
-            shadow-xl
-            rounded-xl
-            text-[11px]
-            leading-relaxed
-          "
-        >
-          {/* ================= HEADER ================= */}
-          <div className="text-center space-y-1">
-            <p className="uppercase">REPUBLIC OF THE PHILIPPINES</p>
-            <p className="uppercase">PROVINCE OF BOHOL</p>
-            <p className="font-medium uppercase">
-              {profile?.location}
-            </p>
+      {/* REPORT */}
+      <div className="flex justify-center bg-gray-100 py-10">
+        <div className="bg-white w-250 p-10 shadow-xl">
 
-            <div className="pt-6 font-bold uppercase">
-              <p>OFFICE OF THE SANGGUNIANG KABATAAN</p>
-              <p>PROCUREMENT REPORT</p>
-            </div>
-
-            <p className="pt-4 text-[10px]">
-              Fiscal Year {profile?.fiscalYear.year} — Status: {status}
-            </p>
-          </div>
-
-          {/* ================= TABLE (this gets copied to Word) ================= */}
           <div ref={editorRef}>
-            <table className="mt-10 w-full border-collapse text-[11px] data">
+            <table className="w-full text-sm mt-6">
               <thead>
-                <tr className="text-center font-semibold">
-                  <th className="w-[4%]">#</th>
-                  <th className="w-[18%] text-left">Title</th>
-                  <th className="w-[22%] text-left">Description</th>
-                  <th className="w-[10%]">Status</th>
-                  <th className="w-[16%] text-left">Remark</th>
-                  <th className="w-[10%] text-right">Amount</th>
-                  <th className="w-[12%] text-left">Prepared By</th>
-                  <th className="w-[8%]">Date</th>
+                <tr>
+                  <th>#</th>
+                  <th>Title</th>
+                  <th>Classification</th>
+                  <th>Object of Expenditure</th>
+                  <th>Item</th>
+                  <th>Qty</th>
+                  <th>Unit Cost</th>
+                  <th>Total</th>
                 </tr>
               </thead>
 
               <tbody>
-                {filteredData.map((p, i) => (
-                  <tr key={p.id} className="align-top">
-                    <td className="text-center">{i + 1}</td>
+                {filteredData.map((p) =>
+                  p.items.map((item) => {
+                    rowNumber++;
+                    return (
+                      <tr key={`${p.id}-${item.id}`}>
+                        <td>{rowNumber}</td>
+                        <td>{p.title}</td>
+                        <td>{p.allocation?.classification?.name || '—'}</td>
+                        <td>{p.allocation?.objectOfExpenditure?.name || '—'}</td>
+                        <td>{item.name}</td>
+                        <td className="text-center">{item.quantity}</td>
+                        <td className="text-right">
+                          ₱{Number(item.unitCost).toLocaleString()}
+                        </td>
+                        <td className="text-right">
+                          ₱{Number(item.totalPrice).toLocaleString()}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
 
-                    <td className="font-semibold text-left">
-                      {p.title}
-                    </td>
+                <tr>
+                  <td colSpan={7} className="text-right font-bold">
+                    GRAND TOTAL
+                  </td>
+                  <td className="text-right font-bold">
+                    ₱{grandTotal.toLocaleString()}
+                  </td>
+                </tr>
 
-                    <td className="text-left">
-                      {p.description || '—'}
-                    </td>
-
-                    <td className="text-center">
-                      {p.latestDecision ?? p.status}
-                    </td>
-
-                    <td className="text-left">
-                      {p.latestRemark || '—'}
-                    </td>
-
-                    <td className="text-right">
-                      {Number(p.amount).toLocaleString()}
-                    </td>
-
-                    <td className="text-left">
-                      {p.createdBy?.fullName || '—'}
-                    </td>
-
-                    <td className="text-center">
-                      {new Date(p.createdAt).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))}
               </tbody>
             </table>
           </div>
 
-          {/* ================= SIGNATORIES (preview only) ================= */}
-          <div className="mt-32 grid grid-cols-3 text-center text-[11px]">
-            {['SK Secretary', 'SK Treasurer', 'SK Chairperson'].map(pos => (
-              <div key={pos}>
-                <p>Prepared / Approved By:</p>
+          {/* SIGNATORIES */}
+          <div className="mt-20 grid grid-cols-3 text-center text-sm">
+            <div>
+              <p>Prepared By:</p>
+              <p className="mt-12 font-bold underline">
+                {getOfficial('SK Treasurer') || '_________________'}
+              </p>
+              <p>SK Treasurer</p>
+            </div>
 
-                <p className="mt-12 font-bold underline">
-                  {getOfficial(pos) || '________________________'}
-                </p>
+            <div>
+              <p>Noted By:</p>
+              <p className="mt-12 font-bold underline">
+                {getOfficial('SK Secretary') || '_________________'}
+              </p>
+              <p>SK Secretary</p>
+            </div>
 
-                <p className="mt-1">{pos}</p>
-              </div>
-            ))}
+            <div>
+              <p>Approved By:</p>
+              <p className="mt-12 font-bold underline">
+                {getOfficial('SK Chairperson') || '_________________'}
+              </p>
+              <p>SK Chairperson</p>
+            </div>
           </div>
+
         </div>
       </div>
 
