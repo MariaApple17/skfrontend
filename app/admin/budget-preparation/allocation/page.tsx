@@ -24,6 +24,7 @@ import FlatSelect from '@/components/reusable/ui/FlatSelect';
 interface BudgetAllocation {
   id: number;
   allocatedAmount: string;
+  category?: 'ADMINISTRATIVE' | 'YOUTH';
   createdAt: string;
 
   program: { id: number; code: string; name: string };
@@ -55,6 +56,7 @@ function BudgetAllocationContent() {
   const [programId, setProgramId] = useState<number | ''>('');
   const [classificationId, setClassificationId] = useState<number | ''>('');
   const [objectId, setObjectId] = useState<number | ''>('');
+  const [category, setCategory] = useState<'' | 'ADMINISTRATIVE' | 'YOUTH'>('');
 
   /* FILTER OPTIONS */
   const [budgets, setBudgets] = useState<Option[]>([]);
@@ -118,6 +120,7 @@ function BudgetAllocationContent() {
           programId: programId || undefined,
           classificationId: classificationId || undefined,
           objectOfExpenditureId: objectId || undefined,
+          category: category || undefined,
         },
       });
 
@@ -141,6 +144,7 @@ function BudgetAllocationContent() {
     programId,
     classificationId,
     objectId,
+    category,
   ]);
 
   /* ================= DELETE ================= */
@@ -179,7 +183,7 @@ function BudgetAllocationContent() {
       </div>
 
       {/* ================= FILTERS ================= */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-8 items-end">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-8 items-end">
         {/* SEARCH */}
         <div className="md:col-span-2 space-y-1.5">
           <label className="text-xs font-medium text-transparent select-none">
@@ -259,6 +263,19 @@ function BudgetAllocationContent() {
             setObjectId(Number(v) || '');
           }}
         />
+
+        <FlatSelect
+          label="Category"
+          value={category}
+          options={[
+            { id: 'ADMINISTRATIVE', label: 'ADMINISTRATIVE' },
+            { id: 'YOUTH', label: 'YOUTH' },
+          ]}
+          onChange={v => {
+            setPage(1);
+            setCategory((v as 'ADMINISTRATIVE' | 'YOUTH') || '');
+          }}
+        />
       </div>
 
       
@@ -334,6 +351,10 @@ function BudgetAllocationContent() {
                 </div>
 
                 <div className="space-y-2 mb-4 pb-4 border-b border-slate-50">
+                  <div className="text-sm text-slate-500">
+                    <span className="text-slate-400 text-xs">Category:</span>{' '}
+                    <span className="text-slate-600">{alloc.category ?? 'N/A'}</span>
+                  </div>
                   <div className="text-sm text-slate-500">
                     <span className="text-slate-400 text-xs">Classification:</span>{' '}
                     <span className="text-slate-600">

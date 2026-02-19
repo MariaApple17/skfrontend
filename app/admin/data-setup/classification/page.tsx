@@ -24,6 +24,7 @@ interface Classification {
   code: string;
   name: string;
   description: string | null;
+  allowedCategories?: Array<'ADMINISTRATIVE' | 'YOUTH'>;
   createdAt: string;
   deletedAt: string | null;
 }
@@ -31,6 +32,9 @@ interface Classification {
 function ClassificationContent() {
   const [items, setItems] = useState<Classification[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [categoryFilter, setCategoryFilter] = useState<
+    '' | 'ADMINISTRATIVE' | 'YOUTH'
+  >('');
 
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -42,7 +46,9 @@ function ClassificationContent() {
   const fetchClassifications = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/classifications');
+      const res = await api.get('/classifications', {
+        params: { category: categoryFilter || undefined },
+      });
       setItems(res.data?.data ?? []);
     } catch (err) {
       console.error('Failed to fetch classifications', err);
@@ -53,7 +59,7 @@ function ClassificationContent() {
 
   useEffect(() => {
     fetchClassifications();
-  }, []);
+  }, [categoryFilter]);
 
   /* ================= DELETE ================= */
   const confirmDelete = async () => {
@@ -96,6 +102,25 @@ function ClassificationContent() {
           <Plus size={16} />
           New Classification
         </button>
+      </div>
+
+      <div className="mb-6 max-w-xs">
+        <label className="text-xs font-medium text-slate-500 block mb-1.5">
+          Category Filter
+        </label>
+        <select
+          value={categoryFilter}
+          onChange={(e) =>
+            setCategoryFilter(
+              (e.target.value as '' | 'ADMINISTRATIVE' | 'YOUTH') || ''
+            )
+          }
+          className="w-full rounded-xl bg-white border border-slate-200 px-3 py-2 text-sm"
+        >
+          <option value="">All Categories</option>
+          <option value="ADMINISTRATIVE">ADMINISTRATIVE</option>
+          <option value="YOUTH">YOUTH</option>
+        </select>
       </div>
 
       {/* ================= CONTENT ================= */}
@@ -228,6 +253,22 @@ function ClassificationContent() {
                   {cls.description}
                 </p>
               )}
+
+              <div className="mb-3 flex flex-wrap gap-2">
+                {(cls.allowedCategories ?? []).map((category) => (
+                  <span
+                    key={category}
+                    className="rounded-full bg-blue-50 text-blue-700 text-xs font-medium px-2 py-1"
+                  >
+                    {category}
+                  </span>
+                ))}
+                {(cls.allowedCategories ?? []).length === 0 && (
+                  <span className="rounded-full bg-slate-100 text-slate-500 text-xs font-medium px-2 py-1">
+                    No category restriction
+                  </span>
+                )}
+              </div>
 
               {/* META */}
               <p className="text-xs text-slate-500">

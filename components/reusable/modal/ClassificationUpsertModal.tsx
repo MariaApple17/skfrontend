@@ -27,12 +27,16 @@ interface FormState {
   code: string;
   name: string;
   description: string;
+  allowedCategories: BudgetCategory[];
 }
+
+type BudgetCategory = 'ADMINISTRATIVE' | 'YOUTH';
 
 const EMPTY_FORM: FormState = {
   code: '',
   name: '',
   description: '',
+  allowedCategories: [],
 };
 
 const ClassificationUpsertModal: React.FC<ClassificationUpsertModalProps> = ({
@@ -69,6 +73,9 @@ const ClassificationUpsertModal: React.FC<ClassificationUpsertModalProps> = ({
           code: d.code,
           name: d.name,
           description: d.description ?? '',
+          allowedCategories: Array.isArray(d.allowedCategories)
+            ? d.allowedCategories
+            : [],
         });
       })
       .catch(() => {
@@ -108,12 +115,14 @@ const ClassificationUpsertModal: React.FC<ClassificationUpsertModalProps> = ({
         await api.put(`/classifications/${classificationId}`, {
           name: form.name.trim(),
           description: form.description.trim(),
+          allowedCategories: form.allowedCategories,
         });
       } else {
         await api.post('/classifications', {
           code: form.code.trim(),
           name: form.name.trim(),
           description: form.description.trim(),
+          allowedCategories: form.allowedCategories,
         });
       }
 
@@ -198,6 +207,53 @@ const ClassificationUpsertModal: React.FC<ClassificationUpsertModalProps> = ({
                 setForm({ ...form, description: e.target.value })
               }
             />
+
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-gray-500">
+                Allowed Categories
+              </label>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {(['ADMINISTRATIVE', 'YOUTH'] as BudgetCategory[]).map(
+                  (category) => {
+                    const checked = form.allowedCategories.includes(category);
+
+                    return (
+                      <label
+                        key={category}
+                        className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setForm((prev) => ({
+                                ...prev,
+                                allowedCategories: [
+                                  ...prev.allowedCategories,
+                                  category,
+                                ],
+                              }));
+                              return;
+                            }
+
+                            setForm((prev) => ({
+                              ...prev,
+                              allowedCategories:
+                                prev.allowedCategories.filter(
+                                  (item) => item !== category
+                                ),
+                            }));
+                          }}
+                        />
+                        <span>{category}</span>
+                      </label>
+                    );
+                  }
+                )}
+              </div>
+            </div>
           </div>
 
           {/* FOOTER */}

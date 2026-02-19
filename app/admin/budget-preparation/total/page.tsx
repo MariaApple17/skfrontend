@@ -22,6 +22,8 @@ interface Budget {
   id: number;
   fiscalYearId: number;
   totalAmount: string;
+  administrativeAmount?: string;
+  youthAmount?: string;
   createdAt: string;
   deletedAt: string | null;
   fiscalYear: {
@@ -243,6 +245,13 @@ function BudgetContent() {
               </div>
 
               {/* META */}
+              <div className="text-xs text-slate-600 mb-2">
+                Administrative: PHP{' '}
+                {formatAmount(String(budget.administrativeAmount ?? 0))}
+              </div>
+              <div className="text-xs text-slate-600 mb-2">
+                Youth: PHP {formatAmount(String(budget.youthAmount ?? 0))}
+              </div>
               <p className="text-xs text-slate-500">
                 Created:{' '}
                 {new Date(budget.createdAt).toLocaleDateString()}

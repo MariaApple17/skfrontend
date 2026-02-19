@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
-
+import { useEffect, useMemo, useState } from 'react';
 import {
   FileText,
   Info,
@@ -23,6 +18,7 @@ import FlatSelect from '@/components/reusable/ui/FlatSelect';
 interface Item {
   name: string;
   quantity: number;
+  unit: string;
   unitCost: number;
 }
 
@@ -43,6 +39,7 @@ interface Props {
 const EMPTY_ITEM: Item = {
   name: '',
   quantity: 1,
+  unit: '',
   unitCost: 0,
 };
 
@@ -56,6 +53,7 @@ export default function ProcurementRequestUpsertModal({
 
   /* ================= STATE ================= */
   const [title, setTitle] = useState('');
+  const [unit, setUnit] = useState('');
   const [description, setDescription] = useState('');
   const [allocationId, setAllocationId] = useState<string | null>(null);
   const [allocations, setAllocations] = useState<Allocation[]>([]);
@@ -77,26 +75,10 @@ export default function ProcurementRequestUpsertModal({
     [items]
   );
 
-  const selectedAllocation = useMemo(() => {
-    if (!allocationId) return null;
-    return allocations.find(
-      a => String(a.id) === allocationId
-    ) ?? null;
-  }, [allocations, allocationId]);
-
-  const remainingAmount = useMemo(() => {
-    if (!selectedAllocation) return 0;
-    return Math.max(
-      selectedAllocation.allocated -
-        selectedAllocation.used -
-        totalAmount,
-      0
-    );
-  }, [selectedAllocation, totalAmount]);
-
   /* ================= RESET ================= */
   const resetForm = () => {
     setTitle('');
+    setUnit('');
     setDescription('');
     setAllocationId(null);
     setItems([{ ...EMPTY_ITEM }]);
@@ -127,49 +109,56 @@ export default function ProcurementRequestUpsertModal({
       });
   }, [open, isEdit]);
 
-  /* ================= LOAD DRAFT REQUEST (EDIT MODE) ================= */
-useEffect(() => {
-  if (!open || !isEdit || !requestId) return;
+  /* ================= LOAD DRAFT ================= */
+  useEffect(() => {
+    if (!open || !isEdit || !requestId) return;
 
-  setLoading(true);
+    setLoading(true);
 
-  api.get(`/procurement/${requestId}/draft`)
-    .then(res => {
-      if (!res.data?.success) {
-        throw new Error('Failed to load draft request');
-      }
+    api.get(`/procurement/${requestId}/draft`)
+      .then(res => {
+        if (!res.data?.success) {
+          throw new Error('Failed to load draft request');
+        }
 
-      const d = res.data.data;
+        const d = res.data.data;
 
-      setTitle(d.title ?? '');
-      setDescription(d.description ?? '');
-      setAllocationId(String(d.allocationId ?? ''));
+        setTitle(d.title ?? '');
+        setDescription(d.description ?? '');
+        setUnit(d.unit ?? '');
+        setAllocationId(String(d.allocationId ?? ''));
 
-      setItems(
-        (d.items ?? []).map((i: any) => ({
-          name: i.name ?? '',
-          quantity: Number(i.quantity ?? 1),
-          unitCost: Number(i.unitCost ?? 0),
-        }))
-      );
-    })
-    .catch(err => {
-      setAlert({
-        type: 'error',
-        message:
-          err?.response?.data?.message ||
-          'Failed to load draft request',
+        setItems(
+          (d.items ?? []).map((i: any) => ({
+            name: i.name ?? '',
+            quantity: Number(i.quantity ?? 1),
+            unit: i.unit ?? '',
+            unitCost: Number(i.unitCost ?? 0),
+          }))
+        );
+      })
+      .catch(err => {
+        setAlert({
+          type: 'error',
+          message:
+            err?.response?.data?.message ||
+            'Failed to load draft request',
+        });
+      })
+      .finally(() => {
+        setLoading(false);
       });
-    })
-    .finally(() => {
-      setLoading(false);
-    });
-}, [open, isEdit, requestId]);
+  }, [open, isEdit, requestId]);
 
   /* ================= SUBMIT ================= */
   const handleSubmit = async () => {
     if (!title.trim()) {
       setAlert({ type: 'error', message: 'Title is required' });
+      return;
+    }
+
+    if (!unit.trim()) {
+      setAlert({ type: 'error', message: 'Unit / Department is required' });
       return;
     }
 
@@ -204,11 +193,13 @@ useEffect(() => {
         ? {
             title,
             description,
-            amount: totalAmount, // allowed for DRAFT update
+            unit,
+            amount: totalAmount,
           }
         : {
             title,
             description,
+            unit,
             allocationId: Number(allocationId),
             items,
           };
@@ -238,13 +229,12 @@ useEffect(() => {
 
   if (!open) return null;
 
-  /* ================= UI ================= */
   return (
     <>
       <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" />
 
       <div className="fixed inset-0 z-50 flex items-center justify-center">
-        <div className="w-full max-w-3xl rounded-2xl bg-white p-6 shadow-xl space-y-6">
+        <div className="w-full max-w-4xl rounded-2xl bg-white p-6 shadow-xl space-y-6">
 
           <h2 className="text-lg font-semibold text-gray-900">
             {isEdit ? 'Update Procurement Request' : 'New Procurement Request'}
@@ -254,19 +244,18 @@ useEffect(() => {
             <Info size={18} className="mt-0.5" />
             <div>
               <p className="font-medium">Total amount</p>
-              <p className="mt-1">
-                Automatically calculated from items.
-              </p>
+              <p className="mt-1">Automatically calculated from items.</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <FlatInput
               label="Title"
               icon={FileText}
               value={title}
               onChange={e => setTitle(e.target.value)}
             />
+
 
             <FlatInput
               label="Total Amount"
@@ -299,16 +288,22 @@ useEffect(() => {
             <div className="space-y-3">
               <p className="text-sm font-medium text-gray-700">Items</p>
 
+              <div className="grid grid-cols-12 gap-3 text-xs font-semibold text-gray-500 px-1">
+                <div className="col-span-4">Item Name</div>
+                <div className="col-span-2 text-center">Quantity</div>
+                <div className="col-span-2 text-center">Unit</div>
+                <div className="col-span-2 text-right">Unit Cost</div>
+                <div className="col-span-1 text-right">Subtotal</div>
+                <div className="col-span-1"></div>
+              </div>
+
               {items.map((item, idx) => {
                 const subtotal = item.quantity * item.unitCost;
 
                 return (
-                  <div
-                    key={idx}
-                    className="grid grid-cols-12 gap-3 items-center"
-                  >
+                  <div key={idx} className="grid grid-cols-12 gap-3 items-center">
                     <input
-                      className="col-span-6 rounded-xl bg-gray-100 px-4 py-2 text-sm"
+                      className="col-span-4 rounded-xl bg-gray-100 px-4 py-2 text-sm"
                       placeholder="Item name"
                       value={item.name}
                       onChange={e => {
@@ -326,6 +321,17 @@ useEffect(() => {
                       onChange={e => {
                         const v = [...items];
                         v[idx] = { ...v[idx], quantity: Number(e.target.value) };
+                        setItems(v);
+                      }}
+                    />
+
+                    <input
+                      className="col-span-2 rounded-xl bg-gray-100 px-3 py-2 text-sm text-center"
+                      placeholder="pcs / box / kg"
+                      value={item.unit}
+                      onChange={e => {
+                        const v = [...items];
+                        v[idx] = { ...v[idx], unit: e.target.value };
                         setItems(v);
                       }}
                     />

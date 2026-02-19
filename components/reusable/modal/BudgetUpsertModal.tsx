@@ -35,6 +35,12 @@ export default function BudgetUpsertModal({
   const [fiscalYears, setFiscalYears] = useState<FiscalYear[]>([]);
   const [fiscalYearId, setFiscalYearId] = useState<number | null>(null);
   const [totalAmount, setTotalAmount] = useState('');
+  const [administrativeAmount, setAdministrativeAmount] = useState('');
+  const [youthAmount, setYouthAmount] = useState('');
+  const [isTotalManuallySet, setIsTotalManuallySet] = useState(false);
+  const [lastEditedSplit, setLastEditedSplit] = useState<
+    'administrative' | 'youth' | null
+  >(null);
   const [loading, setLoading] = useState(false);
 
   const [alert, setAlert] = useState<{
@@ -53,7 +59,116 @@ export default function BudgetUpsertModal({
   const resetState = () => {
     setFiscalYearId(null);
     setTotalAmount('');
+    setAdministrativeAmount('');
+    setYouthAmount('');
+    setIsTotalManuallySet(false);
+    setLastEditedSplit(null);
     setLoading(false);
+  };
+
+  const toNonNegativeNumber = (value: string) => {
+    const parsed = Number(value);
+    if (Number.isNaN(parsed) || parsed < 0) return null;
+    return parsed;
+  };
+
+  const handleTotalAmountChange = (value: string) => {
+    setTotalAmount(value);
+    setIsTotalManuallySet(value !== '');
+
+    const total = toNonNegativeNumber(value);
+    if (total === null) {
+      if (value === '') setIsTotalManuallySet(false);
+      return;
+    }
+
+    const administrative = toNonNegativeNumber(administrativeAmount) ?? 0;
+    const youth = toNonNegativeNumber(youthAmount) ?? 0;
+
+    if (lastEditedSplit === 'administrative') {
+      const nextAdmin = Math.min(administrative, total);
+      setAdministrativeAmount(String(nextAdmin));
+      setYouthAmount(String(Math.max(total - nextAdmin, 0)));
+      return;
+    }
+
+    if (lastEditedSplit === 'youth') {
+      const nextYouth = Math.min(youth, total);
+      setYouthAmount(String(nextYouth));
+      setAdministrativeAmount(String(Math.max(total - nextYouth, 0)));
+      return;
+    }
+
+    if (administrativeAmount !== '' && youthAmount === '') {
+      const nextAdmin = Math.min(administrative, total);
+      setAdministrativeAmount(String(nextAdmin));
+      setYouthAmount(String(Math.max(total - nextAdmin, 0)));
+      return;
+    }
+
+    if (youthAmount !== '' && administrativeAmount === '') {
+      const nextYouth = Math.min(youth, total);
+      setYouthAmount(String(nextYouth));
+      setAdministrativeAmount(String(Math.max(total - nextYouth, 0)));
+    }
+  };
+
+  const handleAdministrativeAmountChange = (value: string) => {
+    setLastEditedSplit('administrative');
+
+    if (value === '') {
+      setAdministrativeAmount('');
+
+      if (!isTotalManuallySet) {
+        const youth = toNonNegativeNumber(youthAmount) ?? 0;
+        setTotalAmount(youth ? String(youth) : '');
+      }
+      return;
+    }
+
+    const administrative = toNonNegativeNumber(value);
+    if (administrative === null) return;
+
+    if (isTotalManuallySet && totalAmount !== '') {
+      const total = toNonNegativeNumber(totalAmount) ?? 0;
+      const cappedAdministrative = Math.min(administrative, total);
+      setAdministrativeAmount(String(cappedAdministrative));
+      setYouthAmount(String(Math.max(total - cappedAdministrative, 0)));
+      return;
+    }
+
+    setAdministrativeAmount(String(administrative));
+    const youth = toNonNegativeNumber(youthAmount) ?? 0;
+    setTotalAmount(String(administrative + youth));
+  };
+
+  const handleYouthAmountChange = (value: string) => {
+    setLastEditedSplit('youth');
+
+    if (value === '') {
+      setYouthAmount('');
+
+      if (!isTotalManuallySet) {
+        const administrative = toNonNegativeNumber(administrativeAmount) ?? 0;
+        setTotalAmount(administrative ? String(administrative) : '');
+      }
+      return;
+    }
+
+    const youth = toNonNegativeNumber(value);
+    if (youth === null) return;
+
+    if (isTotalManuallySet && totalAmount !== '') {
+      const total = toNonNegativeNumber(totalAmount) ?? 0;
+      const cappedYouth = Math.min(youth, total);
+      setYouthAmount(String(cappedYouth));
+      setAdministrativeAmount(String(Math.max(total - cappedYouth, 0)));
+      return;
+    }
+
+    setYouthAmount(String(youth));
+    const administrative = toNonNegativeNumber(administrativeAmount) ?? 0;
+    setTotalAmount(String(administrative + youth));
   };
 
   /* ================= LOAD FISCAL YEARS ================= */
@@ -77,7 +192,10 @@ export default function BudgetUpsertModal({
         .then((res) => {
           const b = res.data.data;
           setFiscalYearId(b.fiscalYearId);
-          setTotalAmount(b.totalAmount);
+          setTotalAmount(String(b.totalAmount ?? ''));
+          setAdministrativeAmount(String(b.administrativeAmount ?? ''));
+          setYouthAmount(String(b.youthAmount ?? ''));
+          setIsTotalManuallySet(true);
         })
         .catch(() => {
           setAlert({
@@ -92,12 +210,43 @@ export default function BudgetUpsertModal({
 
   /* ================= SUBMIT ================= */
   const handleSubmit = async () => {
-    if (!fiscalYearId || !totalAmount) {
+    if (
+      !fiscalYearId ||
+      totalAmount === '' ||
+      administrativeAmount === '' ||
+      youthAmount === ''
+    ) {
       setAlert({
         open: true,
         type: 'error',
         title: 'Validation Error',
-        message: 'Fiscal year and total amount are required.',
+        message:
+          'Fiscal year, total amount, administrative amount, and youth amount are required.',
+      });
+      return;
+    }
+
+    const total = Number(totalAmount);
+    const administrative = Number(administrativeAmount);
+    const youth = Number(youthAmount);
+
+    if ([total, administrative, youth].some((x) => Number.isNaN(x) || x < 0)) {
+      setAlert({
+        open: true,
+        type: 'error',
+        title: 'Validation Error',
+        message: 'Budget amounts must be valid non-negative numbers.',
+      });
+      return;
+    }
+
+    if (administrative + youth !== total) {
+      setAlert({
+        open: true,
+        type: 'error',
+        title: 'Validation Error',
+        message:
+          'Administrative amount plus youth amount must exactly equal total amount.',
       });
       return;
     }
@@ -107,12 +256,16 @@ export default function BudgetUpsertModal({
     try {
       if (isEdit && budgetId) {
         await api.put(`/budgets/${budgetId}`, {
-          totalAmount: Number(totalAmount),
+          totalAmount: total,
+          administrativeAmount: administrative,
+          youthAmount: youth,
         });
       } else {
         await api.post('/budgets', {
           fiscalYearId,
-          totalAmount: Number(totalAmount),
+          totalAmount: total,
+          administrativeAmount: administrative,
+          youthAmount: youth,
         });
       }
 
@@ -121,8 +274,8 @@ export default function BudgetUpsertModal({
         type: 'success',
         title: isEdit ? 'Budget Updated' : 'Budget Created',
         message: isEdit
-          ? 'Total budget updated successfully.'
-          : 'Total budget created successfully.',
+          ? 'Budget split updated successfully.'
+          : 'Budget split created successfully.',
       });
     } catch (err: any) {
       setAlert({
@@ -150,7 +303,7 @@ export default function BudgetUpsertModal({
           </h2>
 
           <p className="text-sm text-gray-500 mb-6">
-            Set the total budget amount for a fiscal year.
+            Set the total budget and category split for a fiscal year.
           </p>
 
           <div className="space-y-5">
@@ -191,7 +344,27 @@ export default function BudgetUpsertModal({
               type="number"
               icon={Wallet}
               value={totalAmount}
-              onChange={(e) => setTotalAmount(e.target.value)}
+              onChange={(e) => handleTotalAmountChange(e.target.value)}
+            />
+
+            <FlatInput
+              label="Administrative Amount"
+              placeholder="e.g. 2,000,000"
+              type="number"
+              icon={Wallet}
+              value={administrativeAmount}
+              onChange={(e) =>
+                handleAdministrativeAmountChange(e.target.value)
+              }
+            />
+
+            <FlatInput
+              label="Youth Amount"
+              placeholder="e.g. 3,000,000"
+              type="number"
+              icon={Wallet}
+              value={youthAmount}
+              onChange={(e) => handleYouthAmountChange(e.target.value)}
             />
           </div>
 

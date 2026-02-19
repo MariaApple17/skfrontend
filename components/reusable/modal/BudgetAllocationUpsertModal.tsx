@@ -3,6 +3,7 @@
 import React, {
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from 'react';
 
@@ -19,6 +20,8 @@ import AlertModal from '@/components/reusable/modal/AlertModal';
 import FlatInput from '@/components/reusable/ui/FlatInput';
 import FlatSelect from '@/components/reusable/ui/FlatSelect';
 
+type BudgetCategory = 'ADMINISTRATIVE' | 'YOUTH';
+
 /* ================= TYPES ================= */
 interface BudgetAllocationUpsertModalProps {
   open: boolean;
@@ -31,14 +34,23 @@ interface FormState {
   budgetId: string;
   programId: string;
   classificationId: string;
+  category: '' | BudgetCategory;
   objectOfExpenditureId: string;
   allocatedAmount: string;
+}
+
+interface Classification {
+  id: number;
+  code: string;
+  name: string;
+  allowedCategories?: BudgetCategory[];
 }
 
 interface ClassificationLimit {
   id: number;
   budgetId: number;
   classificationId: number;
+  category?: BudgetCategory;
   limitAmount: string;
   budget: {
     id: number;
@@ -60,13 +72,26 @@ interface RemainingBudget {
   totalAmount: number;
   totalAllocated: number;
   remaining: number;
+  byCategory?: Partial<
+    Record<
+      BudgetCategory,
+      {
+        cap: number;
+        allocated: number;
+        remaining: number;
+      }
+    >
+  >;
 }
 
 /* ================= CONSTANTS ================= */
+const CATEGORY_OPTIONS: BudgetCategory[] = ['ADMINISTRATIVE', 'YOUTH'];
+
 const initialForm: FormState = {
   budgetId: '',
   programId: '',
   classificationId: '',
+  category: '',
   objectOfExpenditureId: '',
   allocatedAmount: '',
 };
@@ -82,17 +107,15 @@ const BudgetAllocationUpsertModal: React.FC<
 
   const [budgets, setBudgets] = useState<any[]>([]);
   const [programs, setPrograms] = useState<any[]>([]);
-  const [classifications, setClassifications] = useState<any[]>([]);
+  const [classifications, setClassifications] = useState<Classification[]>([]);
   const [objects, setObjects] = useState<any[]>([]);
 
-  /* ================= LIMIT STATE ================= */
   const [classificationLimits, setClassificationLimits] = useState<
     ClassificationLimit[]
   >([]);
   const [limitInfo, setLimitInfo] = useState<LimitInfo | null>(null);
   const [limitLoading, setLimitLoading] = useState(false);
 
-  /* ================= NEW LIMIT STATE ================= */
   const [showLimitForm, setShowLimitForm] = useState(false);
   const [newLimitBudgetId, setNewLimitBudgetId] = useState('');
   const [newLimitAmount, setNewLimitAmount] = useState('');
@@ -113,7 +136,15 @@ const BudgetAllocationUpsertModal: React.FC<
     message: '',
   });
 
-  /* ================= RESET ================= */
+  const allowedCategoriesForSelection = useMemo(() => {
+    const selected = classifications.find(
+      (c) => String(c.id) === form.classificationId
+    );
+    return selected?.allowedCategories?.length
+      ? selected.allowedCategories
+      : CATEGORY_OPTIONS;
+  }, [classifications, form.classificationId]);
+
   const resetForm = () => {
     setForm(initialForm);
     setClassificationLimits([]);
@@ -124,9 +155,8 @@ const BudgetAllocationUpsertModal: React.FC<
     setRemainingBudget(null);
   };
 
-  /* ================= FETCH LIMITS BY CLASSIFICATION ================= */
   const fetchClassificationLimits = useCallback(
-    async (classificationId: string) => {
+    async (classificationId: string, category?: BudgetCategory | '') => {
       if (!classificationId) {
         setClassificationLimits([]);
         return;
@@ -136,9 +166,17 @@ const BudgetAllocationUpsertModal: React.FC<
 
       try {
         const res = await api.get(
-          `/classification-limits/classification/${classificationId}`
+          `/classification-limits/classification/${classificationId}`,
+          {
+            params: {
+              category: category || undefined,
+            },
+          }
         );
-        setClassificationLimits(res.data.data.limits || []);
+        const payload = res.data?.data;
+        setClassificationLimits(
+          Array.isArray(payload) ? payload : payload?.limits ?? []
+        );
       } catch {
         setClassificationLimits([]);
       } finally {
@@ -148,50 +186,71 @@ const BudgetAllocationUpsertModal: React.FC<
     []
   );
 
-  /* ================= FETCH REMAINING LIMIT FOR ALLOCATION ================= */
   const fetchRemainingLimit = useCallback(
-    async (budgetId: string, classificationId: string) => {
-      if (!budgetId || !classificationId) {
+    async (
+      budgetId: string,
+      classificationId: string,
+      category: BudgetCategory | ''
+    ) => {
+      if (!budgetId || !classificationId || !category) {
         setLimitInfo(null);
         return;
       }
 
       try {
         const res = await api.get(
-          `/budget-allocations/remaining/${budgetId}/${classificationId}`
+          `/budget-allocations/remaining/${budgetId}/${classificationId}`,
+          {
+            params: { category },
+          }
         );
 
         setLimitInfo({
-          limitAmount: res.data.data.limitAmount,
-          totalAllocated: res.data.data.totalAllocated,
-          remaining: res.data.data.remaining,
+          limitAmount: Number(res.data?.data?.limitAmount ?? 0),
+          totalAllocated: Number(res.data?.data?.totalAllocated ?? 0),
+          remaining: Number(res.data?.data?.remaining ?? 0),
         });
-      } catch (err) {
-        console.error('Error fetching remaining limit:', err);
+      } catch {
         setLimitInfo(null);
       }
     },
     []
   );
 
-  /* ================= FETCH REMAINING BUDGET FOR NEW LIMIT ================= */
-  const fetchRemainingBudget = useCallback(async (budgetId: string) => {
-    if (!budgetId) {
-      setRemainingBudget(null);
-      return;
-    }
+  const fetchRemainingBudget = useCallback(
+    async (budgetId: string, category: BudgetCategory | '') => {
+      if (!budgetId) {
+        setRemainingBudget(null);
+        return;
+      }
 
-    try {
-      const res = await api.get(
-        `/classification-limits/remaining/${budgetId}`
-      );
-      setRemainingBudget(res.data.data);
-    } catch {
-      setRemainingBudget(null);
-    }
-  }, []);
+      try {
+        const res = await api.get(`/classification-limits/remaining/${budgetId}`);
+        const data: RemainingBudget = res.data?.data;
+        if (!data) {
+          setRemainingBudget(null);
+          return;
+        }
 
-  /* ================= LOAD DATA ================= */
+        if (category && data.byCategory?.[category]) {
+          const cat = data.byCategory[category];
+          setRemainingBudget({
+            ...data,
+            totalAmount: Number(cat?.cap ?? data.totalAmount ?? 0),
+            totalAllocated: Number(cat?.allocated ?? data.totalAllocated ?? 0),
+            remaining: Number(cat?.remaining ?? data.remaining ?? 0),
+          });
+          return;
+        }
+
+        setRemainingBudget(data);
+      } catch {
+        setRemainingBudget(null);
+      }
+    },
+    []
+  );
+
   useEffect(() => {
     if (!open) {
       resetForm();
@@ -206,27 +265,30 @@ const BudgetAllocationUpsertModal: React.FC<
         api.get('/objects-of-expenditure?limit=100'),
       ]);
 
-      setBudgets(b.data.data);
-      setPrograms(p.data.data);
-      setClassifications(c.data.data);
-      setObjects(o.data.data);
+      setBudgets(b.data?.data ?? []);
+      setPrograms(p.data?.data ?? []);
+      setClassifications(c.data?.data ?? []);
+      setObjects(o.data?.data ?? []);
 
       if (allocationId) {
         const res = await api.get(`/budget-allocations/${allocationId}`);
-        const a = res.data.data;
+        const a = res.data?.data;
+        const category = (a?.category ?? '') as BudgetCategory | '';
 
         setForm({
-          budgetId: String(a.budgetId),
-          programId: String(a.programId),
-          classificationId: String(a.classificationId),
-          objectOfExpenditureId: String(a.objectOfExpenditureId),
-          allocatedAmount: String(a.allocatedAmount),
+          budgetId: String(a?.budgetId ?? ''),
+          programId: String(a?.programId ?? ''),
+          classificationId: String(a?.classificationId ?? ''),
+          category,
+          objectOfExpenditureId: String(a?.objectOfExpenditureId ?? ''),
+          allocatedAmount: String(a?.allocatedAmount ?? ''),
         });
 
-        await fetchClassificationLimits(String(a.classificationId));
+        await fetchClassificationLimits(String(a?.classificationId ?? ''), category);
         await fetchRemainingLimit(
-          String(a.budgetId),
-          String(a.classificationId)
+          String(a?.budgetId ?? ''),
+          String(a?.classificationId ?? ''),
+          category
         );
       }
     };
@@ -234,42 +296,69 @@ const BudgetAllocationUpsertModal: React.FC<
     load();
   }, [open, allocationId, fetchClassificationLimits, fetchRemainingLimit]);
 
-  /* ================= CLASSIFICATION CHANGE ================= */
   const handleClassificationChange = async (classificationId: string) => {
+    const selected = classifications.find((c) => String(c.id) === classificationId);
+    const allowed = selected?.allowedCategories?.length
+      ? selected.allowedCategories
+      : CATEGORY_OPTIONS;
+    const nextCategory = allowed[0] ?? '';
+
     setForm((f) => ({
       ...f,
       classificationId,
+      category: nextCategory,
+      budgetId: '',
+      allocatedAmount: '',
+    }));
+
+    setLimitInfo(null);
+    setShowLimitForm(false);
+    setNewLimitBudgetId('');
+    setNewLimitAmount('');
+    setRemainingBudget(null);
+
+    await fetchClassificationLimits(classificationId, nextCategory);
+  };
+
+  const handleCategoryChange = async (category: string) => {
+    const typedCategory = category as BudgetCategory;
+
+    setForm((f) => ({
+      ...f,
+      category: typedCategory,
       budgetId: '',
       allocatedAmount: '',
     }));
     setLimitInfo(null);
     setShowLimitForm(false);
+    setNewLimitBudgetId('');
+    setNewLimitAmount('');
+    setRemainingBudget(null);
 
-    await fetchClassificationLimits(classificationId);
+    if (form.classificationId) {
+      await fetchClassificationLimits(form.classificationId, typedCategory);
+    }
   };
 
-  /* ================= BUDGET LIMIT SELECT - FIXED ================= */
   const handleBudgetLimitChange = async (selectedValue: string) => {
-    console.log('Budget limit selected:', selectedValue);
-    console.log('Classification ID:', form.classificationId);
-    
-    // Set the budgetId in form
     setForm((f) => ({
       ...f,
       budgetId: selectedValue,
       allocatedAmount: '',
     }));
 
-    // Fetch remaining limit with both budgetId and classificationId
-    if (selectedValue && form.classificationId) {
-      console.log('Fetching remaining limit for:', selectedValue, form.classificationId);
-      await fetchRemainingLimit(selectedValue, form.classificationId);
-    } else {
-      setLimitInfo(null);
+    if (selectedValue && form.classificationId && form.category) {
+      await fetchRemainingLimit(
+        selectedValue,
+        form.classificationId,
+        form.category
+      );
+      return;
     }
+
+    setLimitInfo(null);
   };
 
-  /* ================= SHOW ADD NEW LIMIT FORM ================= */
   const handleShowAddLimit = () => {
     setShowLimitForm(true);
     setNewLimitBudgetId('');
@@ -277,19 +366,16 @@ const BudgetAllocationUpsertModal: React.FC<
     setRemainingBudget(null);
   };
 
-  /* ================= NEW LIMIT BUDGET CHANGE ================= */
   const handleNewLimitBudgetChange = async (budgetId: string) => {
     setNewLimitBudgetId(budgetId);
-    await fetchRemainingBudget(budgetId);
+    await fetchRemainingBudget(budgetId, form.category);
   };
 
-  /* ================= GET AVAILABLE BUDGETS FOR NEW LIMIT ================= */
   const getAvailableBudgetsForNewLimit = () => {
     const usedBudgetIds = classificationLimits.map((l) => l.budgetId);
     return budgets.filter((b) => !usedBudgetIds.includes(b.id));
   };
 
-  /* ================= AMOUNT HANDLER ================= */
   const handleAmountChange = (val: string) => {
     if (val === '') {
       setForm((f) => ({ ...f, allocatedAmount: '' }));
@@ -305,7 +391,6 @@ const BudgetAllocationUpsertModal: React.FC<
     }));
   };
 
-  /* ================= CREATE NEW LIMIT ================= */
   const handleCreateLimit = async () => {
     if (!newLimitBudgetId) {
       setAlert({
@@ -313,6 +398,16 @@ const BudgetAllocationUpsertModal: React.FC<
         type: 'error',
         title: 'Select Budget',
         message: 'Please select a budget for the new limit.',
+      });
+      return;
+    }
+
+    if (!form.category) {
+      setAlert({
+        open: true,
+        type: 'error',
+        title: 'Select Category',
+        message: 'Please select a category first.',
       });
       return;
     }
@@ -327,15 +422,12 @@ const BudgetAllocationUpsertModal: React.FC<
       return;
     }
 
-    if (
-      remainingBudget &&
-      Number(newLimitAmount) > remainingBudget.remaining
-    ) {
+    if (remainingBudget && Number(newLimitAmount) > remainingBudget.remaining) {
       setAlert({
         open: true,
         type: 'error',
         title: 'Exceeds Budget',
-        message: `Limit cannot exceed remaining budget (₱${remainingBudget.remaining.toLocaleString()}).`,
+        message: `Limit cannot exceed remaining budget (PHP ${remainingBudget.remaining.toLocaleString()}).`,
       });
       return;
     }
@@ -346,17 +438,13 @@ const BudgetAllocationUpsertModal: React.FC<
       await api.post('/classification-limits', {
         budgetId: Number(newLimitBudgetId),
         classificationId: Number(form.classificationId),
+        category: form.category,
         limitAmount: Number(newLimitAmount),
       });
 
-      // Refresh classification limits
-      await fetchClassificationLimits(form.classificationId);
-
-      // Set the newly created budget as selected
+      await fetchClassificationLimits(form.classificationId, form.category);
       setForm((f) => ({ ...f, budgetId: newLimitBudgetId }));
-      
-      // Fetch remaining limit for the new budget
-      await fetchRemainingLimit(newLimitBudgetId, form.classificationId);
+      await fetchRemainingLimit(newLimitBudgetId, form.classificationId, form.category);
 
       setShowLimitForm(false);
       setNewLimitBudgetId('');
@@ -380,9 +468,7 @@ const BudgetAllocationUpsertModal: React.FC<
     }
   };
 
-  /* ================= SUBMIT ================= */
   const handleSubmit = async () => {
-    // Validate classification
     if (!form.classificationId) {
       setAlert({
         open: true,
@@ -393,7 +479,16 @@ const BudgetAllocationUpsertModal: React.FC<
       return;
     }
 
-    // Validate budget limit
+    if (!form.category) {
+      setAlert({
+        open: true,
+        type: 'error',
+        title: 'Select Category',
+        message: 'Please select a category.',
+      });
+      return;
+    }
+
     if (!form.budgetId) {
       setAlert({
         open: true,
@@ -404,7 +499,6 @@ const BudgetAllocationUpsertModal: React.FC<
       return;
     }
 
-    // Validate program
     if (!form.programId) {
       setAlert({
         open: true,
@@ -415,7 +509,6 @@ const BudgetAllocationUpsertModal: React.FC<
       return;
     }
 
-    // Validate object of expenditure
     if (!form.objectOfExpenditureId) {
       setAlert({
         open: true,
@@ -426,7 +519,6 @@ const BudgetAllocationUpsertModal: React.FC<
       return;
     }
 
-    // Validate amount
     const allocatedAmount = Number(form.allocatedAmount);
     if (!form.allocatedAmount || allocatedAmount <= 0) {
       setAlert({
@@ -438,13 +530,12 @@ const BudgetAllocationUpsertModal: React.FC<
       return;
     }
 
-    // Check if amount exceeds limit
     if (limitInfo && allocatedAmount > limitInfo.remaining) {
       setAlert({
         open: true,
         type: 'error',
         title: 'Exceeds Available Budget',
-        message: `Allocated amount (₱${allocatedAmount.toLocaleString()}) exceeds available budget (₱${limitInfo.remaining.toLocaleString()}).`,
+        message: `Allocated amount (PHP ${allocatedAmount.toLocaleString()}) exceeds available budget (PHP ${limitInfo.remaining.toLocaleString()}).`,
       });
       return;
     }
@@ -456,11 +547,10 @@ const BudgetAllocationUpsertModal: React.FC<
         budgetId: Number(form.budgetId),
         programId: Number(form.programId),
         classificationId: Number(form.classificationId),
+        category: form.category,
         objectOfExpenditureId: Number(form.objectOfExpenditureId),
-        allocatedAmount: allocatedAmount,
+        allocatedAmount,
       };
-
-      console.log('Submitting budget allocation:', payload);
 
       if (isEdit) {
         await api.put(`/budget-allocations/${allocationId}`, payload);
@@ -472,9 +562,7 @@ const BudgetAllocationUpsertModal: React.FC<
         open: true,
         type: 'success',
         title: 'Success',
-        message: `Budget allocation ${
-          isEdit ? 'updated' : 'created'
-        } successfully.`,
+        message: `Budget allocation ${isEdit ? 'updated' : 'created'} successfully.`,
       });
     } catch (e: any) {
       setAlert({
@@ -488,7 +576,6 @@ const BudgetAllocationUpsertModal: React.FC<
     }
   };
 
-  /* ================= ALERT CLOSE ================= */
   const handleAlertClose = () => {
     const wasSuccess = alert.type === 'success';
     const wasAllocationSuccess = wasSuccess && alert.title === 'Success';
@@ -505,14 +592,12 @@ const BudgetAllocationUpsertModal: React.FC<
   if (!open) return null;
 
   const availableBudgetsForNewLimit = getAvailableBudgetsForNewLimit();
-  const hasAvailableBudgets = availableBudgetsForNewLimit.length > 0;
+  const hasAvailableBudgets =
+    Boolean(form.category) && availableBudgetsForNewLimit.length > 0;
 
-  /* ================= UI ================= */
   return (
     <>
-      {/* BACKDROP */}
       <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
-        {/* MODAL CONTAINER */}
         <div
           className="
             w-full max-w-2xl mx-4
@@ -522,7 +607,6 @@ const BudgetAllocationUpsertModal: React.FC<
             flex flex-col
           "
         >
-          {/* ================= HEADER ================= */}
           <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div
@@ -557,18 +641,27 @@ const BudgetAllocationUpsertModal: React.FC<
             </button>
           </div>
 
-          {/* ================= BODY ================= */}
           <div className="px-8 py-6 space-y-6 overflow-y-auto flex-1">
-            {/* ROW 1: CLASSIFICATION & PROGRAM */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               <FlatSelect
                 label="Classification"
                 value={form.classificationId}
                 options={classifications.map((c) => ({
                   id: c.id,
-                  label: `${c.code} — ${c.name}`,
+                  label: `${c.code} - ${c.name}`,
                 }))}
                 onChange={handleClassificationChange}
+              />
+
+              <FlatSelect
+                label="Category"
+                value={form.category}
+                options={allowedCategoriesForSelection.map((category) => ({
+                  id: category,
+                  label: category,
+                }))}
+                onChange={handleCategoryChange}
+                disabled={!form.classificationId}
               />
 
               <FlatSelect
@@ -576,13 +669,12 @@ const BudgetAllocationUpsertModal: React.FC<
                 value={form.programId}
                 options={programs.map((p) => ({
                   id: p.id,
-                  label: `${p.code} — ${p.name}`,
+                  label: `${p.code} - ${p.name}`,
                 }))}
                 onChange={(v) => setForm((f) => ({ ...f, programId: v }))}
               />
             </div>
 
-            {/* ================= BUDGET LIMIT SECTION ================= */}
             {form.classificationId && (
               <div
                 className="
@@ -592,14 +684,13 @@ const BudgetAllocationUpsertModal: React.FC<
                   p-5
                 "
               >
-                {/* SECTION HEADER */}
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h3 className="text-sm font-semibold text-slate-800">
                       Budget Limit
                     </h3>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      Select or create a limit for this classification
+                      Select or create a category-based limit for this classification
                     </p>
                   </div>
                   {hasAvailableBudgets && !showLimitForm && (
@@ -621,8 +712,13 @@ const BudgetAllocationUpsertModal: React.FC<
                   )}
                 </div>
 
-                {/* LOADING STATE */}
-                {limitLoading ? (
+                {!form.category && (
+                  <div className="rounded-xl bg-amber-50/80 border border-amber-200 p-4 text-sm text-amber-700">
+                    Select a category to load classification limits.
+                  </div>
+                )}
+
+                {form.category && limitLoading ? (
                   <div className="py-8 text-center">
                     <div
                       className="
@@ -635,8 +731,7 @@ const BudgetAllocationUpsertModal: React.FC<
                       Loading limits...
                     </p>
                   </div>
-                ) : classificationLimits.length === 0 && !showLimitForm ? (
-                  /* NO LIMITS EXIST */
+                ) : form.category && classificationLimits.length === 0 && !showLimitForm ? (
                   <div
                     className="
                       rounded-xl
@@ -660,8 +755,7 @@ const BudgetAllocationUpsertModal: React.FC<
                           No Budget Limit Found
                         </h4>
                         <p className="text-sm text-slate-600 mt-1.5 leading-relaxed">
-                          This classification doesn't have a budget limit set.
-                          Create one to start allocating funds.
+                          This classification has no limit for {form.category}. Create one to continue.
                         </p>
                         {hasAvailableBudgets && (
                           <button
@@ -685,32 +779,20 @@ const BudgetAllocationUpsertModal: React.FC<
                   </div>
                 ) : (
                   <>
-                    {/* EXISTING LIMITS DROPDOWN */}
-                    {classificationLimits.length > 0 && !showLimitForm && (
+                    {form.category && classificationLimits.length > 0 && !showLimitForm && (
                       <div className="space-y-4">
                         <FlatSelect
                           label="Select Budget / Fiscal Year"
                           value={form.budgetId}
                           options={classificationLimits.map((l) => ({
                             id: l.budgetId,
-                            label: `FY ${
-                              l.budget.fiscalYear.year
-                            } — Limit: ₱${Number(
+                            label: `FY ${l.budget.fiscalYear.year} - ${l.category ?? form.category} - Limit: PHP ${Number(
                               l.limitAmount
                             ).toLocaleString()}`,
                           }))}
                           onChange={handleBudgetLimitChange}
                         />
 
-                        {/* DEBUG INFO */}
-                        {form.budgetId && (
-                          <div className="text-xs text-slate-500 bg-slate-100 rounded-lg p-2">
-                            Selected Budget ID: {form.budgetId}
-                            {limitInfo && ` | Remaining: ₱${limitInfo.remaining.toLocaleString()}`}
-                          </div>
-                        )}
-
-                        {/* LIMIT INFO DISPLAY */}
                         {limitInfo && (
                           <div
                             className="
@@ -722,7 +804,7 @@ const BudgetAllocationUpsertModal: React.FC<
                           >
                             <div className="py-4 px-3 text-center rounded-lg">
                               <p className="text-lg font-bold text-slate-800">
-                                ₱{limitInfo.limitAmount.toLocaleString()}
+                                PHP {limitInfo.limitAmount.toLocaleString()}
                               </p>
                               <p className="text-xs text-slate-500 mt-1.5 font-medium uppercase tracking-wide">
                                 Total Limit
@@ -730,7 +812,7 @@ const BudgetAllocationUpsertModal: React.FC<
                             </div>
                             <div className="py-4 px-3 text-center bg-slate-50 rounded-lg">
                               <p className="text-lg font-bold text-slate-600">
-                                ₱{limitInfo.totalAllocated.toLocaleString()}
+                                PHP {limitInfo.totalAllocated.toLocaleString()}
                               </p>
                               <p className="text-xs text-slate-500 mt-1.5 font-medium uppercase tracking-wide">
                                 Allocated
@@ -738,7 +820,7 @@ const BudgetAllocationUpsertModal: React.FC<
                             </div>
                             <div className="py-4 px-3 text-center bg-emerald-50 rounded-lg">
                               <p className="text-lg font-bold text-emerald-600">
-                                ₱{limitInfo.remaining.toLocaleString()}
+                                PHP {limitInfo.remaining.toLocaleString()}
                               </p>
                               <p className="text-xs text-emerald-600 mt-1.5 font-medium uppercase tracking-wide">
                                 Available
@@ -751,7 +833,6 @@ const BudgetAllocationUpsertModal: React.FC<
                   </>
                 )}
 
-                {/* ADD NEW LIMIT FORM */}
                 {showLimitForm && (
                   <div
                     className="
@@ -788,7 +869,7 @@ const BudgetAllocationUpsertModal: React.FC<
                         value={newLimitBudgetId}
                         options={availableBudgetsForNewLimit.map((b) => ({
                           id: b.id,
-                          label: `FY ${b.fiscalYear?.year} — Total: ₱${Number(
+                          label: `FY ${b.fiscalYear?.year} - Total: PHP ${Number(
                             b.totalAmount
                           ).toLocaleString()}`,
                         }))}
@@ -804,13 +885,13 @@ const BudgetAllocationUpsertModal: React.FC<
                         >
                           <p className="text-sm text-slate-700">
                             <span className="text-slate-500 font-medium">
-                              Available Budget:
+                              Available {form.category || 'Category'} Budget:
                             </span>{' '}
                             <span className="font-bold text-slate-800">
-                              ₱{remainingBudget.remaining.toLocaleString()}
+                              PHP {remainingBudget.remaining.toLocaleString()}
                             </span>{' '}
                             <span className="text-slate-400">
-                              of ₱{remainingBudget.totalAmount.toLocaleString()}
+                              of PHP {remainingBudget.totalAmount.toLocaleString()}
                             </span>
                           </p>
                         </div>
@@ -845,20 +926,18 @@ const BudgetAllocationUpsertModal: React.FC<
               </div>
             )}
 
-            {/* ================= OBJECT OF EXPENDITURE ================= */}
             <FlatSelect
               label="Object of Expenditure"
               value={form.objectOfExpenditureId}
               options={objects.map((o) => ({
                 id: o.id,
-                label: `${o.code} — ${o.name}`,
+                label: `${o.code} - ${o.name}`,
               }))}
               onChange={(v) =>
                 setForm((f) => ({ ...f, objectOfExpenditureId: v }))
               }
             />
 
-            {/* ================= ALLOCATED AMOUNT ================= */}
             <div>
               <FlatInput
                 label="Allocated Amount"
@@ -871,11 +950,11 @@ const BudgetAllocationUpsertModal: React.FC<
                 <p className="mt-2.5 text-sm text-slate-500">
                   Maximum available:{' '}
                   <span className="font-semibold text-emerald-600">
-                    ₱{limitInfo.remaining.toLocaleString()}
+                    PHP {limitInfo.remaining.toLocaleString()}
                   </span>
                 </p>
               )}
-              {!form.budgetId && form.classificationId && (
+              {!form.budgetId && form.classificationId && form.category && (
                 <p className="mt-2.5 text-sm text-amber-600">
                   Please select a budget limit first
                 </p>
@@ -883,7 +962,6 @@ const BudgetAllocationUpsertModal: React.FC<
             </div>
           </div>
 
-          {/* ================= FOOTER ================= */}
           <div
             className="
               px-8 py-5

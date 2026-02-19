@@ -83,6 +83,9 @@ export default function DashboardPage() {
   const budget = isAllMode
     ? data.totals
     : data.budget ?? { total: 0, allocated: 0, used: 0 };
+  const byCategory = !isAllMode
+    ? data.budget?.byCategory ?? {}
+    : {};
 
   const unallocatedBudget = Math.max(
     budget.total - budget.allocated,
@@ -274,6 +277,52 @@ export default function DashboardPage() {
           </div>
         </section>
 
+        {!isAllMode && (
+          <section className="mb-12 animate-fade-in opacity-0">
+            <div className="mb-6">
+              <h2 className="font-display text-2xl text-slate-900 mb-1">
+                Budget By Category
+              </h2>
+              <p className="text-sm text-slate-500">
+                Category caps and utilization for current fiscal year
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {(['ADMINISTRATIVE', 'YOUTH'] as const).map((category) => {
+                const c = byCategory?.[category] ?? {
+                  cap: 0,
+                  allocated: 0,
+                  used: 0,
+                  remaining: 0,
+                  utilizationRate: 0,
+                };
+
+                return (
+                  <div
+                    key={category}
+                    className="glass-effect border border-slate-200/60 shadow-soft rounded-[24px] p-6"
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                      {category}
+                    </p>
+                    <p className="text-2xl font-display text-slate-900 mb-4">
+                      ₱{Number(c.cap ?? 0).toLocaleString()}
+                    </p>
+                    <div className="space-y-1 text-sm text-slate-600">
+                      <p>Allocated: ₱{Number(c.allocated ?? 0).toLocaleString()}</p>
+                      <p>Used: ₱{Number(c.used ?? 0).toLocaleString()}</p>
+                      <p>Remaining: ₱{Number(c.remaining ?? 0).toLocaleString()}</p>
+                      <p>
+                        Utilization: {Number(c.utilizationRate ?? 0).toFixed(1)}%
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         {/* ================= CHARTS (ALL MODE) ================= */}
         {isAllMode && (
           <section className="mb-12 animate-fade-in opacity-0">
@@ -310,6 +359,8 @@ export default function DashboardPage() {
                     />
                     <Bar dataKey="total" fill="#3b82f6" radius={[8, 8, 0, 0]} />
                     <Bar dataKey="allocated" fill="#10b981" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="administrativeAmount" fill="#f59e0b" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="youthAmount" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </ChartCard>

@@ -4,28 +4,22 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import api from '@/components/lib/api';
 import FlatSelect from '@/components/reusable/ui/FlatSelect';
 
-/* ================= TYPES ================= */
+const MONTH_OPTIONS = [
+  { id: 'ALL', label: 'All Months' },
+  ...Array.from({ length: 12 }, (_, i) => ({
+    id: String(i),
+    label: new Date(0, i).toLocaleString('default', {
+      month: 'long',
+    }),
+  })),
+];
 
-interface ProcurementItem {
+interface BudgetRow {
   id: number;
-  title: string;
-  description?: string;
-  amount: string;
-  status: string;
-  createdAt: string;
-
-  allocation?: {
-    classification?: { name: string };
-    objectOfExpenditure?: { name: string };
-  } | null;
-
-  items: {
-    id: number;
-    name: string;
-    quantity: number;
-    unitCost: string;
-    totalPrice: string;
-  }[];
+  allocatedAmount: string;
+  usedAmount: string;
+  classification: { name: string };
+  object: { name: string };
 }
 
 interface SystemProfile {
@@ -40,34 +34,13 @@ interface SKOfficial {
   isActive: boolean;
 }
 
-/* ================= CONSTANTS ================= */
-
-const STATUS_OPTIONS = [
-  { id: 'ALL', label: 'All Status' },
-  { id: 'DRAFT', label: 'Draft' },
-  { id: 'SUBMITTED', label: 'Submitted' },
-  { id: 'APPROVED', label: 'Approved' },
-  { id: 'REJECTED', label: 'Rejected' },
-  { id: 'PURCHASED', label: 'Purchased' },
-  { id: 'COMPLETED', label: 'Completed' },
-];
-
-const MONTH_OPTIONS = [
-  { id: 'ALL', label: 'All Months' },
-  ...Array.from({ length: 12 }, (_, i) => ({
-    id: String(i),
-    label: new Date(0, i).toLocaleString('default', { month: 'long' }),
-  })),
-];
-
-const ProcurementReportEditor = () => {
+const FinancialReportEditor = () => {
   const editorRef = useRef<HTMLDivElement>(null);
-
-  const [status, setStatus] = useState('APPROVED');
   const [month, setMonth] = useState('ALL');
+
   const [profile, setProfile] = useState<SystemProfile | null>(null);
   const [officials, setOfficials] = useState<SKOfficial[]>([]);
-  const [data, setData] = useState<ProcurementItem[]>([]);
+  const [data, setData] = useState<BudgetRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   /* ================= LOAD ================= */
@@ -84,35 +57,52 @@ const ProcurementReportEditor = () => {
       );
       setOfficials(officialsRes.data.data ?? []);
 
-      const procurementRes = await api.get('/procurement', {
-        params: {
-          status: status === 'ALL' ? undefined : status,
-          limit: 999,
-        },
+      const res = await api.get('/reports/budget-summary', {
+        params: { limit: 999 },
       });
 
-      setData(procurementRes.data.data ?? []);
+      setData(res.data.data ?? []);
       setLoading(false);
     };
 
     load();
-  }, [status]);
+  }, []);
 
   const getOfficial = (pos: string) =>
     officials.find(o => o.position === pos && o.isActive)?.fullName;
 
-  /* ================= FILTER BY MONTH ================= */
+  /* ================= COMPUTATIONS ================= */
 
-  const filteredData = useMemo(() => {
-    if (month === 'ALL') return data;
-    return data.filter(
-      p => new Date(p.createdAt).getMonth() === Number(month)
-    );
-  }, [data, month]);
+  const computed = useMemo(() => {
+    return data.map(d => {
+      const appropriation = Number(d.allocatedAmount);
+      const obligations = Number(d.usedAmount || 0);
+      const balance = appropriation - obligations;
 
-  const grandTotal = useMemo(() => {
-    return filteredData.reduce((sum, p) => sum + Number(p.amount), 0);
-  }, [filteredData]);
+      let remarks = 'No Obligation';
+      if (obligations > 0 && obligations < appropriation)
+        remarks = 'Partially Utilized';
+      if (obligations >= appropriation)
+        remarks = 'Fully Utilized';
+
+      return {
+        ...d,
+        appropriation,
+        allotment: appropriation,
+        obligations,
+        balance,
+        remarks,
+      };
+    });
+  }, [data]);
+
+  const totals = useMemo(() => {
+    return {
+      appropriation: computed.reduce((s, r) => s + r.appropriation, 0),
+      obligations: computed.reduce((s, r) => s + r.obligations, 0),
+      balance: computed.reduce((s, r) => s + r.balance, 0),
+    };
+  }, [computed]);
 
   const handlePrint = () => {
     window.print();
@@ -120,20 +110,11 @@ const ProcurementReportEditor = () => {
 
   if (loading) return <p className="py-20 text-center">Loading…</p>;
 
-  let rowNumber = 0;
-
   return (
     <div className="space-y-10">
 
       {/* FILTER + PRINT */}
       <div className="flex justify-center gap-4">
-        <FlatSelect
-          label="Status"
-          value={status}
-          options={STATUS_OPTIONS}
-          onChange={setStatus}
-        />
-
         <FlatSelect
           label="Month"
           value={month}
@@ -151,7 +132,7 @@ const ProcurementReportEditor = () => {
 
       {/* REPORT AREA */}
       <div className="flex justify-center bg-gray-100 py-10">
-        <div className="bg-white w-[1200px] p-12 shadow-xl print-area">
+        <div className="bg-white w-[1100px] p-12 shadow-xl print-area">
 
           <div ref={editorRef}>
 
@@ -161,7 +142,7 @@ const ProcurementReportEditor = () => {
               <p className="text-sm">PROVINCE OF BOHOL</p>
               <p className="font-bold text-lg">{profile?.location}</p>
               <p className="font-bold text-xl mt-4">
-                PROCUREMENT REPORT
+                FINANCIAL STATUS REPORT
               </p>
               <p className="text-sm">
                 Fiscal Year {profile?.fiscalYear.year}
@@ -173,50 +154,54 @@ const ProcurementReportEditor = () => {
               <thead>
                 <tr className="bg-gray-200 text-center">
                   <th className="border p-2">#</th>
-                  <th className="border p-2">Title</th>
                   <th className="border p-2">Classification</th>
                   <th className="border p-2">Object</th>
-                  <th className="border p-2">Item</th>
-                  <th className="border p-2">Qty</th>
-                  <th className="border p-2">Unit Cost</th>
-                  <th className="border p-2">Total</th>
+                  <th className="border p-2">Appropriation</th>
+                  <th className="border p-2">Allotment</th>
+                  <th className="border p-2">Obligations</th>
+                  <th className="border p-2">Balance</th>
+                  <th className="border p-2">Remarks</th>
                 </tr>
               </thead>
 
               <tbody>
-                {filteredData.map((p) =>
-                  p.items.map((item) => {
-                    rowNumber++;
-                    return (
-                      <tr key={`${p.id}-${item.id}`} className="text-center">
-                        <td className="border p-2">{rowNumber}</td>
-                        <td className="border p-2">{p.title}</td>
-                        <td className="border p-2">
-                          {p.allocation?.classification?.name || '—'}
-                        </td>
-                        <td className="border p-2">
-                          {p.allocation?.objectOfExpenditure?.name || '—'}
-                        </td>
-                        <td className="border p-2">{item.name}</td>
-                        <td className="border p-2">{item.quantity}</td>
-                        <td className="border p-2 text-right">
-                          ₱{Number(item.unitCost).toLocaleString()}
-                        </td>
-                        <td className="border p-2 text-right">
-                          ₱{Number(item.totalPrice).toLocaleString()}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
+                {computed.map((r, index) => (
+                  <tr key={r.id} className="text-center">
+                    <td className="border p-2">{index + 1}</td>
+                    <td className="border p-2">{r.classification?.name}</td>
+                    <td className="border p-2">{r.object?.name}</td>
+                    <td className="border p-2 text-right">
+                      ₱{r.appropriation.toLocaleString()}
+                    </td>
+                    <td className="border p-2 text-right">
+                      ₱{r.allotment.toLocaleString()}
+                    </td>
+                    <td className="border p-2 text-right">
+                      ₱{r.obligations.toLocaleString()}
+                    </td>
+                    <td className="border p-2 text-right">
+                      ₱{r.balance.toLocaleString()}
+                    </td>
+                    <td className="border p-2">{r.remarks}</td>
+                  </tr>
+                ))}
 
+                {/* TOTAL ROW */}
                 <tr className="font-bold bg-gray-100 text-center">
-                  <td colSpan={7} className="border p-2 text-right">
+                  <td colSpan={3} className="border p-2 text-right">
                     GRAND TOTAL
                   </td>
                   <td className="border p-2 text-right">
-                    ₱{grandTotal.toLocaleString()}
+                    ₱{totals.appropriation.toLocaleString()}
                   </td>
+                  <td></td>
+                  <td className="border p-2 text-right">
+                    ₱{totals.obligations.toLocaleString()}
+                  </td>
+                  <td className="border p-2 text-right">
+                    ₱{totals.balance.toLocaleString()}
+                  </td>
+                  <td></td>
                 </tr>
               </tbody>
             </table>
@@ -275,4 +260,4 @@ const ProcurementReportEditor = () => {
   );
 };
 
-export default ProcurementReportEditor;
+export default FinancialReportEditor;

@@ -24,6 +24,7 @@ import {
   useRouter,
 } from 'next/navigation';
 
+import api from '@/components/lib/api';
 import AlertModal from '@/components/reusable/modal/AlertModal';
 
 type MenuItem = {
@@ -45,6 +46,9 @@ type SystemProfile = {
     isActive: boolean;
   };
 };
+
+const SYSTEM_PROFILE_CACHE_KEY = 'system_profile_cache_v1';
+const SYSTEM_PROFILE_CACHE_TTL_MS = 5 * 60 * 1000;
 
 export default function DashboardLayout({
   children,
@@ -129,20 +133,47 @@ export default function DashboardLayout({
   /* ================= LOAD SYSTEM PROFILE ================= */
   useEffect(() => {
     const loadSystemProfile = async () => {
+      let hasFreshCache = false;
+
       try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/system-profile`,
-          {
-            headers: {
-              Authorization: `Bearer ${sessionStorage.getItem('token')}`,
-            },
+        const cachedRaw = sessionStorage.getItem(SYSTEM_PROFILE_CACHE_KEY);
+        if (cachedRaw) {
+          const cached = JSON.parse(cachedRaw) as {
+            data?: SystemProfile;
+            ts?: number;
+          };
+
+          if (cached?.data) {
+            setSystemProfile(cached.data);
           }
-        );
 
-        const json = await res.json();
+          if (
+            cached?.data &&
+            typeof cached.ts === 'number' &&
+            Date.now() - cached.ts < SYSTEM_PROFILE_CACHE_TTL_MS
+          ) {
+            hasFreshCache = true;
+          }
+        }
+      } catch {
+        sessionStorage.removeItem(SYSTEM_PROFILE_CACHE_KEY);
+      }
 
-        if (json?.success) {
-          setSystemProfile(json.data);
+      if (hasFreshCache) return;
+
+      try {
+        const res = await api.get('/system-profile');
+        const profile = res.data?.data as SystemProfile | undefined;
+
+        if (profile) {
+          setSystemProfile(profile);
+          sessionStorage.setItem(
+            SYSTEM_PROFILE_CACHE_KEY,
+            JSON.stringify({
+              data: profile,
+              ts: Date.now(),
+            })
+          );
         }
       } catch {
         console.warn('Failed to load system profile');
@@ -245,6 +276,8 @@ export default function DashboardLayout({
       children: [
         { label: 'Report Data', href: '/admin/reports/data' },
         { label: 'Procurement Report', href: '/admin/reports/procurement' },
+        { label: 'Accomplishment Report', href: '/admin/reports/accomplishment' },
+        { label: 'Financial Report', href: '/admin/reports/financial' },
       ],
     },
   ];
@@ -324,7 +357,7 @@ export default function DashboardLayout({
                     />
                   ) : (
                     <span className="text-slate-600 font-medium text-lg">
-                      {systemProfile?.systemName?.charAt(0) ?? 'S'}
+                      {systemProfile?.systemName?.charAt(0) ?? 'S'}   
                     </span>
                   )}
                 </div>

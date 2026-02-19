@@ -1,26 +1,61 @@
 @import "tailwindcss";
 
+/* ================= BASE COLORS ================= */
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #000000;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/* Remove auto dark mode switching completely */
+/* We will control dark mode using Tailwind classes only */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* ================= BODY ================= */
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background-color: #f8fafc; /* light gray background */
+  color: #000000;
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ================= REPORT SAFE STYLING ================= */
+.report-container {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  opacity: 1 !important;
+}
+
+/* Force table visibility */
+.report-container table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.report-container th,
+.report-container td {
+  border: 1px solid #000000;
+  color: #000000 !important;
+  padding: 8px;
+}
+
+.report-container thead {
+  background-color: #e5e7eb; /* gray-200 */
+}
+
+/* ================= PRINT FIX ================= */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .report-container {
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+  }
+
+  th,
+  td {
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
+  }
 }
