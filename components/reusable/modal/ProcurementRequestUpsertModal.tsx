@@ -15,10 +15,11 @@ import FlatInput from '@/components/reusable/ui/FlatInput';
 import FlatSelect from '@/components/reusable/ui/FlatSelect';
 
 /* ================= TYPES ================= */
+
 interface Item {
   name: string;
-  quantity: number;
   unit: string;
+  quantity: number;
   unitCost: number;
 }
 
@@ -52,8 +53,8 @@ export default function ProcurementRequestUpsertModal({
   const isEdit = Boolean(requestId);
 
   /* ================= STATE ================= */
+
   const [title, setTitle] = useState('');
-  const [unit, setUnit] = useState('');
   const [description, setDescription] = useState('');
   const [allocationId, setAllocationId] = useState<string | null>(null);
   const [allocations, setAllocations] = useState<Allocation[]>([]);
@@ -66,6 +67,7 @@ export default function ProcurementRequestUpsertModal({
   } | null>(null);
 
   /* ================= COMPUTED ================= */
+
   const totalAmount = useMemo(
     () =>
       items.reduce(
@@ -76,15 +78,16 @@ export default function ProcurementRequestUpsertModal({
   );
 
   /* ================= RESET ================= */
+
   const resetForm = () => {
     setTitle('');
-    setUnit('');
     setDescription('');
     setAllocationId(null);
     setItems([{ ...EMPTY_ITEM }]);
   };
 
   /* ================= LOAD ALLOCATIONS ================= */
+
   useEffect(() => {
     if (!open || isEdit) return;
 
@@ -110,6 +113,7 @@ export default function ProcurementRequestUpsertModal({
   }, [open, isEdit]);
 
   /* ================= LOAD DRAFT ================= */
+
   useEffect(() => {
     if (!open || !isEdit || !requestId) return;
 
@@ -125,16 +129,17 @@ export default function ProcurementRequestUpsertModal({
 
         setTitle(d.title ?? '');
         setDescription(d.description ?? '');
-        setUnit(d.unit ?? '');
         setAllocationId(String(d.allocationId ?? ''));
 
         setItems(
-          (d.items ?? []).map((i: any) => ({
-            name: i.name ?? '',
-            quantity: Number(i.quantity ?? 1),
-            unit: i.unit ?? '',
-            unitCost: Number(i.unitCost ?? 0),
-          }))
+          (d.items ?? []).length
+            ? d.items.map((i: any) => ({
+                name: i.name ?? '',
+                quantity: Number(i.quantity ?? 1),
+                unit: i.unit ?? '',
+                unitCost: Number(i.unitCost ?? 0),
+              }))
+            : [{ ...EMPTY_ITEM }]
         );
       })
       .catch(err => {
@@ -151,14 +156,10 @@ export default function ProcurementRequestUpsertModal({
   }, [open, isEdit, requestId]);
 
   /* ================= SUBMIT ================= */
+
   const handleSubmit = async () => {
     if (!title.trim()) {
       setAlert({ type: 'error', message: 'Title is required' });
-      return;
-    }
-
-    if (!unit.trim()) {
-      setAlert({ type: 'error', message: 'Unit / Department is required' });
       return;
     }
 
@@ -178,6 +179,14 @@ export default function ProcurementRequestUpsertModal({
       return;
     }
 
+    if (items.some(i => !i.unit.trim())) {
+      setAlert({
+        type: 'error',
+        message: 'All items must have a unit (pcs, box, kg, etc.)',
+      });
+      return;
+    }
+
     if (items.some(i => i.quantity <= 0 || i.unitCost <= 0)) {
       setAlert({
         type: 'error',
@@ -189,20 +198,12 @@ export default function ProcurementRequestUpsertModal({
     setLoading(true);
 
     try {
-      const payload = isEdit
-        ? {
-            title,
-            description,
-            unit,
-            amount: totalAmount,
-          }
-        : {
-            title,
-            description,
-            unit,
-            allocationId: Number(allocationId),
-            items,
-          };
+      const payload = {
+        title,
+        description,
+        ...(isEdit ? {} : { allocationId: Number(allocationId) }),
+        items,
+      };
 
       const res = isEdit
         ? await api.put(`/procurement/${requestId}`, payload)
@@ -256,7 +257,6 @@ export default function ProcurementRequestUpsertModal({
               onChange={e => setTitle(e.target.value)}
             />
 
-
             <FlatInput
               label="Total Amount"
               icon={PhilippinePeso}
@@ -284,95 +284,96 @@ export default function ProcurementRequestUpsertModal({
             />
           )}
 
-          {!isEdit && (
-            <div className="space-y-3">
-              <p className="text-sm font-medium text-gray-700">Items</p>
+          {/* ================= ITEMS ================= */}
 
-              <div className="grid grid-cols-12 gap-3 text-xs font-semibold text-gray-500 px-1">
-                <div className="col-span-4">Item Name</div>
-                <div className="col-span-2 text-center">Quantity</div>
-                <div className="col-span-2 text-center">Unit</div>
-                <div className="col-span-2 text-right">Unit Cost</div>
-                <div className="col-span-1 text-right">Subtotal</div>
-                <div className="col-span-1"></div>
-              </div>
+          <div className="space-y-3">
+            <p className="text-sm font-medium text-gray-700">Items</p>
 
-              {items.map((item, idx) => {
-                const subtotal = item.quantity * item.unitCost;
-
-                return (
-                  <div key={idx} className="grid grid-cols-12 gap-3 items-center">
-                    <input
-                      className="col-span-4 rounded-xl bg-gray-100 px-4 py-2 text-sm"
-                      placeholder="Item name"
-                      value={item.name}
-                      onChange={e => {
-                        const v = [...items];
-                        v[idx] = { ...v[idx], name: e.target.value };
-                        setItems(v);
-                      }}
-                    />
-
-                    <input
-                      type="number"
-                      min={1}
-                      className="col-span-2 rounded-xl bg-gray-100 px-3 py-2 text-sm text-center"
-                      value={item.quantity}
-                      onChange={e => {
-                        const v = [...items];
-                        v[idx] = { ...v[idx], quantity: Number(e.target.value) };
-                        setItems(v);
-                      }}
-                    />
-
-                    <input
-                      className="col-span-2 rounded-xl bg-gray-100 px-3 py-2 text-sm text-center"
-                      placeholder="pcs / box / kg"
-                      value={item.unit}
-                      onChange={e => {
-                        const v = [...items];
-                        v[idx] = { ...v[idx], unit: e.target.value };
-                        setItems(v);
-                      }}
-                    />
-
-                    <input
-                      type="number"
-                      min={0}
-                      className="col-span-2 rounded-xl bg-gray-100 px-3 py-2 text-sm text-right"
-                      value={item.unitCost}
-                      onChange={e => {
-                        const v = [...items];
-                        v[idx] = { ...v[idx], unitCost: Number(e.target.value) };
-                        setItems(v);
-                      }}
-                    />
-
-                    <div className="col-span-1 text-right text-sm font-medium">
-                      ₱{subtotal.toLocaleString()}
-                    </div>
-
-                    <button
-                      onClick={() =>
-                        setItems(items.filter((_, i) => i !== idx))
-                      }
-                      className="col-span-1 flex justify-center text-red-500"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                );
-              })}
-
-              <button
-                onClick={() => setItems([...items, { ...EMPTY_ITEM }])}
-                className="flex items-center gap-2 text-sm text-blue-600"
-              >
-                <Plus size={16} />
-                Add item
-              </button>
+            <div className="grid grid-cols-12 gap-3 text-xs font-semibold text-gray-500 px-1">
+              <div className="col-span-4">Item Name</div>
+              <div className="col-span-2 text-center">Quantity</div>
+              <div className="col-span-2 text-center">Unit</div>
+              <div className="col-span-2 text-right">Unit Cost</div>
+              <div className="col-span-1 text-right">Subtotal</div>
+              <div className="col-span-1"></div>
             </div>
-          )}
+
+            {items.map((item, idx) => {
+              const subtotal = item.quantity * item.unitCost;
+
+              return (
+                <div key={idx} className="grid grid-cols-12 gap-3 items-center">
+
+                  <input
+                    className="col-span-4 rounded-xl bg-gray-100 px-4 py-2 text-sm"
+                    placeholder="Item name"
+                    value={item.name}
+                    onChange={e => {
+                      const updated = [...items];
+                      updated[idx].name = e.target.value;
+                      setItems(updated);
+                    }}
+                  />
+
+                  <input
+                    type="number"
+                    min={1}
+                    className="col-span-2 rounded-xl bg-gray-100 px-3 py-2 text-sm text-center"
+                    value={item.quantity}
+                    onChange={e => {
+                      const updated = [...items];
+                      updated[idx].quantity = Number(e.target.value);
+                      setItems(updated);
+                    }}
+                  />
+
+                  <input
+                    className="col-span-2 rounded-xl bg-gray-100 px-3 py-2 text-sm text-center"
+                    placeholder="pcs / box / kg"
+                    value={item.unit}
+                    onChange={e => {
+                      const updated = [...items];
+                      updated[idx].unit = e.target.value;
+                      setItems(updated);
+                    }}
+                  />
+
+                  <input
+                    type="number"
+                    min={0}
+                    className="col-span-2 rounded-xl bg-gray-100 px-3 py-2 text-sm text-right"
+                    value={item.unitCost}
+                    onChange={e => {
+                      const updated = [...items];
+                      updated[idx].unitCost = Number(e.target.value);
+                      setItems(updated);
+                    }}
+                  />
+
+                  <div className="col-span-1 text-right text-sm font-medium">
+                    ₱{subtotal.toLocaleString()}
+                  </div>
+
+                  <button
+                    onClick={() =>
+                      setItems(items.filter((_, i) => i !== idx))
+                    }
+                    className="col-span-1 flex justify-center text-red-500"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              );
+            })}
+
+            <button
+              onClick={() => setItems([...items, { ...EMPTY_ITEM }])}
+              className="flex items-center gap-2 text-sm text-blue-600"
+            >
+              <Plus size={16} />
+              Add item
+            </button>
+          </div>
 
           <div className="flex justify-end gap-3">
             <button

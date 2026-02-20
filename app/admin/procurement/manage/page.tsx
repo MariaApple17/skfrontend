@@ -205,34 +205,38 @@ function ProcurementManagementContent() {
     (action === 'approve' ||
       action === 'reject' ||
       action === 'purchase' ||
-      action === 'complete');
+      action === 'complete');const uploadProof = async () => {
+  if (!uploadFile || !targetId) return;
 
-  const uploadProof = async () => {
-    if (!uploadFile || !targetId) return;
+  const formData = new FormData();
+  formData.append('file', uploadFile);
+  formData.append('requestId', String(targetId));
+  formData.append('type', proofType);
 
-    const formData = new FormData();
-    formData.append('file', uploadFile);
-    formData.append('requestId', String(targetId));
-    formData.append('type', proofType);
-    if (proofDescription) {
-      formData.append('description', proofDescription);
-    }
+  if (proofDescription) {
+    formData.append('description', proofDescription);
+  }
 
-    try {
-      setUploading(true);
-      await api.post('/procurement/upload-proof', formData);
+  try {
+    setUploading(true);
 
+    await api.post('/procurement/upload-proof', formData);
 
-      setAction(null);
-      setTargetId(null);
-      setUploadFile(null);
-      setProofType('');
-      setProofDescription('');
-      fetchRequests();
-    } finally {
-      setUploading(false);
-    }
-  };
+    setAction(null);
+    setTargetId(null);
+    setUploadFile(null);
+    setProofType('');
+    setProofDescription('');
+    fetchRequests();
+
+  } catch (err: any) {
+    console.log("SERVER ERROR:", err.response?.data);
+    alert(JSON.stringify(err.response?.data));
+  } finally {
+    setUploading(false);
+  }
+};
+
 
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 

@@ -339,25 +339,28 @@ const BudgetAllocationUpsertModal: React.FC<
       await fetchClassificationLimits(form.classificationId, typedCategory);
     }
   };
+const handleBudgetLimitChange = async (selectedLimitId: string) => {
+  const selectedLimit = classificationLimits.find(
+    (l) => String(l.id) === selectedLimitId
+  );
 
-  const handleBudgetLimitChange = async (selectedValue: string) => {
-    setForm((f) => ({
-      ...f,
-      budgetId: selectedValue,
-      allocatedAmount: '',
-    }));
+  if (!selectedLimit) return;
 
-    if (selectedValue && form.classificationId && form.category) {
-      await fetchRemainingLimit(
-        selectedValue,
-        form.classificationId,
-        form.category
-      );
-      return;
-    }
+  const budgetId = String(selectedLimit.budgetId);
 
-    setLimitInfo(null);
-  };
+  setForm((f) => ({
+    ...f,
+    budgetId,
+    allocatedAmount: '',
+  }));
+
+  await fetchRemainingLimit(
+    budgetId,
+    form.classificationId,
+    form.category
+  );
+};
+
 
   const handleShowAddLimit = () => {
     setShowLimitForm(true);
@@ -864,17 +867,22 @@ const BudgetAllocationUpsertModal: React.FC<
                     </div>
 
                     <div className="space-y-4">
+                      
                       <FlatSelect
-                        label="Select Budget / Fiscal Year"
-                        value={newLimitBudgetId}
-                        options={availableBudgetsForNewLimit.map((b) => ({
-                          id: b.id,
-                          label: `FY ${b.fiscalYear?.year} - Total: PHP ${Number(
-                            b.totalAmount
-                          ).toLocaleString()}`,
-                        }))}
-                        onChange={handleNewLimitBudgetChange}
-                      />
+  label="Select Budget / Fiscal Year"
+  value={
+    classificationLimits.find(
+      (l) => String(l.budgetId) === form.budgetId
+    )?.id?.toString() ?? ''
+  }
+  options={classificationLimits.map((l) => ({
+    id: l.id, // ✅ UNIQUE PRIMARY KEY
+    label: `FY ${l.budget.fiscalYear.year} - ${l.category ?? form.category
+      } - Limit: PHP ${Number(l.limitAmount).toLocaleString()}`,
+  }))}
+  onChange={handleBudgetLimitChange}
+/>
+
 
                       {remainingBudget && (
                         <div
