@@ -373,11 +373,19 @@ const handleBudgetLimitChange = async (selectedLimitId: string) => {
     setNewLimitBudgetId(budgetId);
     await fetchRemainingBudget(budgetId, form.category);
   };
+const getAvailableBudgetsForNewLimit = () => {
+  if (!form.category) return [];
 
-  const getAvailableBudgetsForNewLimit = () => {
-    const usedBudgetIds = classificationLimits.map((l) => l.budgetId);
-    return budgets.filter((b) => !usedBudgetIds.includes(b.id));
-  };
+  return budgets.filter((b) => {
+    const hasLimitForCategory = classificationLimits.some(
+      (l) =>
+        l.budgetId === b.id &&
+        l.category === form.category
+    );
+
+    return !hasLimitForCategory;
+  });
+};
 
   const handleAmountChange = (val: string) => {
     if (val === '') {
@@ -868,21 +876,15 @@ const handleBudgetLimitChange = async (selectedLimitId: string) => {
 
                     <div className="space-y-4">
                       
-                      <FlatSelect
+                  <FlatSelect
   label="Select Budget / Fiscal Year"
-  value={
-    classificationLimits.find(
-      (l) => String(l.budgetId) === form.budgetId
-    )?.id?.toString() ?? ''
-  }
-  options={classificationLimits.map((l) => ({
-    id: l.id, // ✅ UNIQUE PRIMARY KEY
-    label: `FY ${l.budget.fiscalYear.year} - ${l.category ?? form.category
-      } - Limit: PHP ${Number(l.limitAmount).toLocaleString()}`,
+  value={newLimitBudgetId}
+  options={availableBudgetsForNewLimit.map((b) => ({
+    id: b.id,
+    label: `FY ${b.fiscalYear?.year}`,
   }))}
-  onChange={handleBudgetLimitChange}
+  onChange={handleNewLimitBudgetChange}
 />
-
 
                       {remainingBudget && (
                         <div

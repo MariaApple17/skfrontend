@@ -141,32 +141,32 @@ const FlatSelect: React.FC<FlatSelectProps> = ({
 
           {/* OPTIONS */}
           <div className="max-h-56 overflow-y-auto py-1">
-            {filtered.map((opt) => {
-              const isSelected = String(opt.id) === value;
+           {filtered.map((opt, index) => {
+  const isSelected = String(opt.id) === value;
 
-              return (
-                <button
-                  key={opt.id}
-                  onClick={() => {
-                    onChange(String(opt.id));
-                    setOpen(false);
-                    setQuery('');
-                  }}
-                  className={`
-                    w-full text-left px-4 py-3
-                    text-sm font-medium
-                    transition-all duration-150
-                    ${
-                      isSelected
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
-                    }
-                  `}
-                >
-                  {opt.label}
-                </button>
-              );
-            })}
+  return (
+    <button
+      key={`${opt.id}-${index}`}
+      onClick={() => {
+        onChange(String(opt.id));
+        setOpen(false);
+        setQuery('');
+      }}
+      className={`
+        w-full text-left px-4 py-3
+        text-sm font-medium
+        transition-all duration-150
+        ${
+          isSelected
+            ? 'bg-blue-50 text-blue-700'
+            : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+        }
+      `}
+    >
+      {opt.label}
+    </button>
+  );
+})}
 
             {filtered.length === 0 && (
               <p className="px-4 py-4 text-sm font-medium text-slate-400 text-center">

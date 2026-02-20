@@ -52,7 +52,7 @@ function BudgetAllocationContent() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   /* FILTER STATE */
-  const [budgetId, setBudgetId] = useState<number | ''>('');
+  const [fiscalYearId, setFiscalYearId] = useState<number | ''>('');
   const [programId, setProgramId] = useState<number | ''>('');
   const [classificationId, setClassificationId] = useState<number | ''>('');
   const [objectId, setObjectId] = useState<number | ''>('');
@@ -72,39 +72,42 @@ function BudgetAllocationContent() {
 
   /* ================= LOAD FILTER OPTIONS ================= */
   useEffect(() => {
-    Promise.all([
-      api.get('/budgets'),
-      api.get('/programs?isActive=true&limit=100'),
-      api.get('/classifications'),
-      api.get('/objects-of-expenditure?limit=100'),
-    ]).then(([b, p, c, o]) => {
-      setBudgets(
-        b.data.data.map((x: any) => ({
-          id: x.id,
-          label: `FY ${x.fiscalYear?.year}`,
-        }))
-      );
-      setPrograms(
-        p.data.data.map((x: any) => ({
-          id: x.id,
-          label: `${x.code} — ${x.name}`,
-        }))
-      );
-      setClassifications(
-        c.data.data.map((x: any) => ({
-          id: x.id,
-          label: `${x.code} — ${x.name}`,
-        }))
-      );
-      setObjects(
-        o.data.data.map((x: any) => ({
-          id: x.id,
-          label: `${x.code} — ${x.name}`,
-        }))
-      );
-    });
-  }, []);
+  Promise.all([
+    api.get('/fiscal-years'),
+    api.get('/programs?isActive=true&limit=100'),
+    api.get('/classifications'),
+    api.get('/objects-of-expenditure?limit=100'),
+  ]).then(([b, p, c, o]) => {
 
+    setBudgets(
+      b.data.data.map((fy: any) => ({
+        id: fy.id,
+        label: `FY ${fy.year}`,
+      }))
+    );
+
+    setPrograms(
+      p.data.data.map((x: any) => ({
+        id: x.id,
+        label: `${x.code} — ${x.name}`,
+      }))
+    );
+
+    setClassifications(
+      c.data.data.map((x: any) => ({
+        id: x.id,
+        label: `${x.code} — ${x.name}`,
+      }))
+    );
+
+    setObjects(
+      o.data.data.map((x: any) => ({
+        id: x.id,
+        label: `${x.code} — ${x.name}`,
+      }))
+    );
+  });
+}, []);
   /* ================= FETCH ================= */
   const fetchAllocations = async () => {
     setLoading(true);
@@ -116,7 +119,7 @@ function BudgetAllocationContent() {
           limit,
           sortBy,
           sortOrder,
-          budgetId: budgetId || undefined,
+          fiscalYearId: fiscalYearId || undefined,
           programId: programId || undefined,
           classificationId: classificationId || undefined,
           objectOfExpenditureId: objectId || undefined,
@@ -140,7 +143,7 @@ function BudgetAllocationContent() {
     page,
     sortBy,
     sortOrder,
-    budgetId,
+    fiscalYearId,
     programId,
     classificationId,
     objectId,
@@ -210,17 +213,17 @@ function BudgetAllocationContent() {
 
         {/* BUDGET */}
         <FlatSelect
-          label="Budget"
-          value={String(budgetId || '')}
-          options={budgets.map(b => ({
-            id: b.id,
-            label: b.label,
-          }))}
-          onChange={v => {
-            setPage(1);
-            setBudgetId(Number(v) || '');
-          }}
-        />
+  label="Fiscal Year"
+  value={String(fiscalYearId || '')}
+  options={budgets.map(b => ({
+    id: b.id,
+    label: b.label,
+  }))}
+  onChange={v => {
+    setPage(1);
+    setFiscalYearId(Number(v) || '');
+  }}
+/>
 
         {/* PROGRAM */}
         <FlatSelect
