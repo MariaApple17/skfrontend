@@ -319,26 +319,27 @@ const BudgetAllocationUpsertModal: React.FC<
 
     await fetchClassificationLimits(classificationId, nextCategory);
   };
+const handleCategoryChange = async (category: string) => {
+  const typedCategory = category as BudgetCategory;
 
-  const handleCategoryChange = async (category: string) => {
-    const typedCategory = category as BudgetCategory;
+  setForm((f) => ({
+    ...f,
+    category: typedCategory,
+    programId: typedCategory === 'ADMINISTRATIVE' ? '' : f.programId, // ✅ clear program
+    budgetId: '',
+    allocatedAmount: '',
+  }));
 
-    setForm((f) => ({
-      ...f,
-      category: typedCategory,
-      budgetId: '',
-      allocatedAmount: '',
-    }));
-    setLimitInfo(null);
-    setShowLimitForm(false);
-    setNewLimitBudgetId('');
-    setNewLimitAmount('');
-    setRemainingBudget(null);
+  setLimitInfo(null);
+  setShowLimitForm(false);
+  setNewLimitBudgetId('');
+  setNewLimitAmount('');
+  setRemainingBudget(null);
 
-    if (form.classificationId) {
-      await fetchClassificationLimits(form.classificationId, typedCategory);
-    }
-  };
+  if (form.classificationId) {
+    await fetchClassificationLimits(form.classificationId, typedCategory);
+  }
+};
 const handleBudgetLimitChange = async (selectedLimitId: string) => {
   const selectedLimit = classificationLimits.find(
     (l) => String(l.id) === selectedLimitId
@@ -510,16 +511,15 @@ const getAvailableBudgetsForNewLimit = () => {
       return;
     }
 
-    if (!form.programId) {
-      setAlert({
-        open: true,
-        type: 'error',
-        title: 'Select Program',
-        message: 'Please select a program.',
-      });
-      return;
-    }
-
+    if (form.category === 'YOUTH' && !form.programId) {
+  setAlert({
+    open: true,
+    type: 'error',
+    title: 'Select Program',
+    message: 'Please select a program.',
+  });
+  return;
+}
     if (!form.objectOfExpenditureId) {
       setAlert({
         open: true,
@@ -653,38 +653,44 @@ const getAvailableBudgetsForNewLimit = () => {
           </div>
 
           <div className="px-8 py-6 space-y-6 overflow-y-auto flex-1">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              <FlatSelect
-                label="Classification"
-                value={form.classificationId}
-                options={classifications.map((c) => ({
-                  id: c.id,
-                  label: `${c.code} - ${c.name}`,
-                }))}
-                onChange={handleClassificationChange}
-              />
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+  <FlatSelect
+    label="Classification"
+    value={form.classificationId}
+    options={classifications.map((c) => ({
+      id: c.id,
+      label: `${c.code} - ${c.name}`,
+    }))}
+    onChange={handleClassificationChange}
+  />
 
-              <FlatSelect
-                label="Category"
-                value={form.category}
-                options={allowedCategoriesForSelection.map((category) => ({
-                  id: category,
-                  label: category,
-                }))}
-                onChange={handleCategoryChange}
-                disabled={!form.classificationId}
-              />
+  <FlatSelect
+    label="Category"
+    value={form.category}
+    options={allowedCategoriesForSelection.map((category) => ({
+      id: category,
+      label: category,
+    }))}
+    onChange={handleCategoryChange}
+    disabled={!form.classificationId}
+  />
 
-              <FlatSelect
-                label="Program"
-                value={form.programId}
-                options={programs.map((p) => ({
-                  id: p.id,
-                  label: `${p.code} - ${p.name}`,
-                }))}
-                onChange={(v) => setForm((f) => ({ ...f, programId: v }))}
-              />
-            </div>
+  {form.category === 'YOUTH' && (
+    <FlatSelect
+      label="Program"
+      value={form.programId}
+      options={programs.map((p) => ({
+        id: p.id,
+        label: `${p.code} - ${p.name}`,
+      }))}
+      onChange={(v) =>
+        setForm((f) => ({ ...f, programId: v }))
+      }
+    />
+  )}
+</div>
+
+              
 
             {form.classificationId && (
               <div
