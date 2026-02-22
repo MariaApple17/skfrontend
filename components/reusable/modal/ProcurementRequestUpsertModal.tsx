@@ -94,13 +94,13 @@ export default function ProcurementRequestUpsertModal({
     api.get('/budget-allocations')
       .then(res => {
         if (!res.data?.success) return;
-
-        const data = (res.data.data ?? []).map((a: any) => ({
-          id: Number(a.id),
-          allocated: Number(a.allocatedAmount ?? 0),
-          used: Number(a.usedAmount ?? 0),
-          label: `${a?.program?.code ?? 'N/A'} – ${a?.program?.name ?? 'Unknown'} • ${a?.object?.name ?? 'Unknown'}`,
-        }));
+        
+const data = (res.data.data ?? []).map((a: any) => ({
+  id: Number(a.id),
+  allocated: Number(a.allocatedAmount ?? 0),
+  used: Number(a.usedAmount ?? 0),
+  label: `${a?.program?.code ?? 'N/A'} – ${a?.program?.name ?? 'Unknown'} • ${a?.classification?.name ?? 'Unknown'} • ${a?.object?.name ?? 'Unknown'}`,
+}));
 
         setAllocations(data);
       })

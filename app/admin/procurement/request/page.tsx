@@ -44,13 +44,24 @@ interface Proof {
   fileUrl: string;
   description?: string | null;
 }
-
 interface Allocation {
   allocatedAmount: string;
   usedAmount: string;
-  programId: number;
-  classificationId: number;
-  objectOfExpenditureId: number;
+
+  program?: {
+    name: string;
+    code: string;
+  };
+
+  classification?: {
+    name: string;
+    code: string;
+  };
+
+  object?: {
+    name: string;
+    code: string;
+  };
 }
 
 interface CreatedBy {
@@ -122,15 +133,19 @@ function ProcurementRequestContent() {
     setAlertType(null);
     fetchRequests();
   };
-
   const confirmSubmit = async () => {
-    if (!submitId) return;
+  if (!submitId) return;
+
+  try {
     await api.patch(`/procurement/${submitId}/submit`);
+    fetchRequests();
+  } catch (err: any) {
+    alert(err.response?.data?.message || 'Submission failed');
+  } finally {
     setSubmitId(null);
     setAlertType(null);
-    fetchRequests();
-  };
-
+  }
+};
   return (
     <>
       {/* ================= HEADER ================= */}
@@ -315,22 +330,33 @@ function ProcurementRequestContent() {
 
                 {/* ================= ALLOCATION ================= */}
                 {req.allocation && (
-                  <div className="px-6 mb-4">
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
-                      <div className="flex items-center gap-2 mb-2">
-                        <DollarSign size={14} className="text-blue-600" />
-                        <span className="text-xs font-bold text-blue-900 uppercase tracking-wide">
-                          Budget Allocation
-                        </span>
-                      </div>
-                      <p className="text-sm font-bold text-slate-700">
-                        ₱{Number(req.allocation.usedAmount).toLocaleString()} / ₱
-                        {Number(req.allocation.allocatedAmount).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                )}
+  <div className="px-6 mb-4">
+    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
 
+      {/* 🔥 ADD THIS SECTION */}
+      <div className="text-xs font-semibold text-slate-700 mb-2">
+        {req.allocation?.program?.code} – {req.allocation?.program?.name}
+        {' • '}
+        {req.allocation?.classification?.name}
+        {' • '}
+        {req.allocation?.object?.name}
+      </div>
+
+      <div className="flex items-center gap-2 mb-2">
+        <DollarSign size={14} className="text-blue-600" />
+        <span className="text-xs font-bold text-blue-900 uppercase tracking-wide">
+          Budget Allocation
+        </span>
+      </div>
+
+      <p className="text-sm font-bold text-slate-700">
+        ₱{Number(req.allocation.usedAmount).toLocaleString()} / ₱
+        {Number(req.allocation.allocatedAmount).toLocaleString()}
+      </p>
+
+    </div>
+  </div>
+)}
                 {/* ================= ITEMS ================= */}
                 <div className="px-6 mb-4">
                   <div className="flex items-center gap-2 mb-3">
