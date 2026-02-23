@@ -29,9 +29,9 @@ interface BudgetAllocationUpsertModalProps {
   onClose: () => void;
   onSuccess: () => void;
 }
-
 interface FormState {
-  budgetId: string;
+  budgetId: string;      // for backend
+  limitId: string;       // for dropdown display
   programId: string;
   classificationId: string;
   category: '' | BudgetCategory;
@@ -86,9 +86,9 @@ interface RemainingBudget {
 
 /* ================= CONSTANTS ================= */
 const CATEGORY_OPTIONS: BudgetCategory[] = ['ADMINISTRATIVE', 'YOUTH'];
-
 const initialForm: FormState = {
   budgetId: '',
+  limitId: '',
   programId: '',
   classificationId: '',
   category: '',
@@ -135,6 +135,7 @@ const BudgetAllocationUpsertModal: React.FC<
     title: '',
     message: '',
   });
+  const [hasExistingAllocation, setHasExistingAllocation] = useState(false);
 
   const allowedCategoriesForSelection = useMemo(() => {
     const selected = classifications.find(
@@ -144,6 +145,7 @@ const BudgetAllocationUpsertModal: React.FC<
       ? selected.allowedCategories
       : CATEGORY_OPTIONS;
   }, [classifications, form.classificationId]);
+  
 
   const resetForm = () => {
     setForm(initialForm);
@@ -154,6 +156,43 @@ const BudgetAllocationUpsertModal: React.FC<
     setNewLimitAmount('');
     setRemainingBudget(null);
   };
+const checkExistingAllocation = useCallback(
+  async (objectId: string) => {
+    if (
+      !form.budgetId ||
+      !form.classificationId ||
+      !form.category ||
+      !objectId
+    ) {
+      setHasExistingAllocation(false);
+      return;
+    }
+
+    try {
+      const res = await api.get('/budget-allocations', {
+        params: {
+          budgetId: form.budgetId,
+          classificationId: form.classificationId,
+          category: form.category,
+          objectOfExpenditureId: objectId,
+        },
+      });
+
+      const allocations = res.data?.data ?? [];
+
+      // if creating new → any existing is duplicate
+      // if editing → ignore itself
+      const duplicate = allocations.some(
+        (a: any) => (!allocationId ? true : a.id !== allocationId)
+      );
+
+      setHasExistingAllocation(duplicate);
+    } catch {
+      setHasExistingAllocation(false);
+    }
+  },
+  [form.budgetId, form.classificationId, form.category, allocationId]
+);
 
   const fetchClassificationLimits = useCallback(
     async (classificationId: string, category?: BudgetCategory | '') => {
@@ -278,6 +317,7 @@ const BudgetAllocationUpsertModal: React.FC<
         setForm({
           budgetId: String(a?.budgetId ?? ''),
           programId: String(a?.programId ?? ''),
+            limitId: '',     // ✅ RESET
           classificationId: String(a?.classificationId ?? ''),
           category,
           objectOfExpenditureId: String(a?.objectOfExpenditureId ?? ''),
@@ -304,12 +344,13 @@ const BudgetAllocationUpsertModal: React.FC<
     const nextCategory = allowed[0] ?? '';
 
     setForm((f) => ({
-      ...f,
-      classificationId,
-      category: nextCategory,
-      budgetId: '',
-      allocatedAmount: '',
-    }));
+  ...f,
+  classificationId,
+  category: nextCategory,
+  budgetId: '',
+  limitId: '',     // ✅ RESET
+  allocatedAmount: '',
+}));
 
     setLimitInfo(null);
     setShowLimitForm(false);
@@ -323,12 +364,13 @@ const handleCategoryChange = async (category: string) => {
   const typedCategory = category as BudgetCategory;
 
   setForm((f) => ({
-    ...f,
-    category: typedCategory,
-    programId: typedCategory === 'ADMINISTRATIVE' ? '' : f.programId, // ✅ clear program
-    budgetId: '',
-    allocatedAmount: '',
-  }));
+  ...f,
+  category: typedCategory,
+  programId: typedCategory === 'ADMINISTRATIVE' ? '' : f.programId,
+  budgetId: '',
+  limitId: '',     // ✅ RESET
+  allocatedAmount: '',
+}));
 
   setLimitInfo(null);
   setShowLimitForm(false);
@@ -340,6 +382,7 @@ const handleCategoryChange = async (category: string) => {
     await fetchClassificationLimits(form.classificationId, typedCategory);
   }
 };
+
 const handleBudgetLimitChange = async (selectedLimitId: string) => {
   const selectedLimit = classificationLimits.find(
     (l) => String(l.id) === selectedLimitId
@@ -349,9 +392,10 @@ const handleBudgetLimitChange = async (selectedLimitId: string) => {
 
   const budgetId = String(selectedLimit.budgetId);
 
-  setForm((f) => ({
-    ...f,
-    budgetId,
+  setForm((prev) => ({
+    ...prev,
+    limitId: selectedLimitId,  // ✅ controls dropdown
+    budgetId,                  // ✅ used for backend + remaining
     allocatedAmount: '',
   }));
 
@@ -550,13 +594,26 @@ const getAvailableBudgetsForNewLimit = () => {
       });
       return;
     }
+    if (hasExistingAllocation && !isEdit) {
+  setAlert({
+    open: true,
+    type: 'error',
+    title: 'Duplicate Allocation',
+    message:
+      'This object already has an allocated budget for the selected budget, classification and category.',
+  });
+  return;
+}
 
     setLoading(true);
 
     try {
       const payload = {
         budgetId: Number(form.budgetId),
-        programId: Number(form.programId),
+        programId:
+  form.category === 'ADMINISTRATIVE'
+    ? null
+    : Number(form.programId),
         classificationId: Number(form.classificationId),
         category: form.category,
         objectOfExpenditureId: Number(form.objectOfExpenditureId),
@@ -799,16 +856,16 @@ const getAvailableBudgetsForNewLimit = () => {
                     {form.category && classificationLimits.length > 0 && !showLimitForm && (
                       <div className="space-y-4">
                         <FlatSelect
-                          label="Select Budget / Fiscal Year"
-                          value={form.budgetId}
-                          options={classificationLimits.map((l) => ({
-                            id: l.budgetId,
-                            label: `FY ${l.budget.fiscalYear.year} - ${l.category ?? form.category} - Limit: PHP ${Number(
-                              l.limitAmount
-                            ).toLocaleString()}`,
-                          }))}
-                          onChange={handleBudgetLimitChange}
-                        />
+  label="Select Budget"
+  value={form.limitId}   // ✅ FIXED
+  options={classificationLimits.map((l) => ({
+    id: String(l.id),    // classificationLimit.id
+    label: `FY ${l.budget.fiscalYear.year} - ${l.category ?? form.category} - Limit: PHP ${Number(
+      l.limitAmount
+    ).toLocaleString()}`,
+  }))}
+  onChange={handleBudgetLimitChange}
+/>
 
                         {limitInfo && (
                           <div
@@ -883,7 +940,7 @@ const getAvailableBudgetsForNewLimit = () => {
                     <div className="space-y-4">
                       
                   <FlatSelect
-  label="Select Budget / Fiscal Year"
+  label="Fiscal Year"
   value={newLimitBudgetId}
   options={availableBudgetsForNewLimit.map((b) => ({
     id: b.id,
@@ -949,10 +1006,19 @@ const getAvailableBudgetsForNewLimit = () => {
                 id: o.id,
                 label: `${o.code} - ${o.name}`,
               }))}
-              onChange={(v) =>
-                setForm((f) => ({ ...f, objectOfExpenditureId: v }))
-              }
-            />
+             onChange={(v) => {
+  setForm((f) => ({ ...f, objectOfExpenditureId: v }));
+  checkExistingAllocation(v);
+}}
+      />
+      {hasExistingAllocation && (
+  <div className="mt-3 p-4 rounded-xl bg-amber-50 border border-amber-200">
+    <p className="text-sm font-semibold text-amber-700">
+      ⚠ This object already has an allocated budget under this
+      classification, category, and fiscal year.
+    </p>
+  </div>
+)}
 
             <div>
               <FlatInput

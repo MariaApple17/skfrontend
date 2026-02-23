@@ -278,51 +278,63 @@ export default function DashboardPage() {
         </section>
 
         {!isAllMode && (
-          <section className="mb-12 animate-fade-in opacity-0">
-            <div className="mb-6">
-              <h2 className="font-display text-2xl text-slate-900 mb-1">
-                Budget By Category
-              </h2>
-              <p className="text-sm text-slate-500">
-                Category caps and utilization for current fiscal year
-              </p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {(['ADMINISTRATIVE', 'YOUTH'] as const).map((category) => {
-                const c = byCategory?.[category] ?? {
-                  cap: 0,
-                  allocated: 0,
-                  used: 0,
-                  remaining: 0,
-                  utilizationRate: 0,
-                };
+  <section className="mb-12 animate-fade-in opacity-0">
+    <div className="mb-6">
+      <h2 className="font-display text-2xl text-slate-900 mb-1">
+        Budget By Category
+      </h2>
+      <p className="text-sm text-slate-500">
+        Category caps and utilization for current fiscal year
+      </p>
+    </div>
+<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+  {(['GENERAL ADMINISTRATIVE PROGRAM', 'SK YOUTH DEVELOPMENT AND EMPOWERMENT PROGRAM'] as const).map((category) => {
 
-                return (
-                  <div
-                    key={category}
-                    className="glass-effect border border-slate-200/60 shadow-soft rounded-[24px] p-6"
-                  >
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
-                      {category}
-                    </p>
-                    <p className="text-2xl font-display text-slate-900 mb-4">
-                      ₱{Number(c.cap ?? 0).toLocaleString()}
-                    </p>
-                    <div className="space-y-1 text-sm text-slate-600">
-                      <p>Allocated: ₱{Number(c.allocated ?? 0).toLocaleString()}</p>
-                      <p>Used: ₱{Number(c.used ?? 0).toLocaleString()}</p>
-                      <p>Remaining: ₱{Number(c.remaining ?? 0).toLocaleString()}</p>
-                      <p>
-                        Utilization: {Number(c.utilizationRate ?? 0).toFixed(1)}%
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
+    const c =
+      Array.isArray(byCategory)
+        ? byCategory[category === 'GENERAL ADMINISTRATIVE PROGRAM' ? 0 : 1] ?? {}
+        : byCategory?.[category] ?? {};
 
+    const cap = Number(c.cap ?? 0);
+    const allocated = Number(c.allocated ?? 0);
+    const used = Number(c.used ?? 0);
+    const remaining = Number(c.remaining ?? 0);
+    const utilization = Number(c.utilizationRate ?? 0);
+
+    return (
+      <div
+        key={category}
+        className="glass-effect border border-slate-200/60 shadow-soft rounded-[24px] p-6"
+      >
+        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+          {category}
+        </p>
+
+        <p className="text-2xl font-display text-slate-900 mb-4">
+          ₱{cap.toLocaleString()}
+        </p>
+
+        <div className="space-y-1 text-sm text-slate-600">
+          <p className="font-semibold text-blue-600">
+            Allocated: ₱{allocated.toLocaleString()}
+          </p>
+          <p>Used: ₱{used.toLocaleString()}</p>
+          <p>Remaining: ₱{remaining.toLocaleString()}</p>
+          <p>Utilization: {utilization.toFixed(1)}%</p>
+        </div>
+
+        <div className="mt-4 h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600"
+            style={{ width: `${Math.min(utilization, 100)}%` }}
+          />
+        </div>
+      </div>
+    );
+  })}
+</div>
+  </section>
+)}
         {/* ================= CHARTS (ALL MODE) ================= */}
         {isAllMode && (
           <section className="mb-12 animate-fade-in opacity-0">
@@ -668,3 +680,5 @@ function getGreeting() {
   if (h < 18) return 'Good afternoon';
   return 'Good evening';
 }
+
+
