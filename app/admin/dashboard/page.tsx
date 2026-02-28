@@ -108,6 +108,44 @@ export default function DashboardPage() {
     ? ((budget.used / budget.total) * 100).toFixed(1)
     : '0.0';
 
+    /* ================= ALL YEARS ANALYTICS ================= */
+
+const yearlyData = Array.isArray(data.yearly) ? data.yearly : [];
+
+let highestTotal: any = null;
+let lowestTotal: any = null;
+let highestUsed: any = null;
+let lowestUsed: any = null;
+let bestUtilization: any = null;
+let worstUtilization: any = null;
+
+if (isAllMode && yearlyData.length > 0) {
+  highestTotal = yearlyData.reduce((a: any, b: any) =>
+    Number(a.total) > Number(b.total) ? a : b
+  );
+
+  lowestTotal = yearlyData.reduce((a: any, b: any) =>
+    Number(a.total) < Number(b.total) ? a : b
+  );
+
+  highestUsed = yearlyData.reduce((a: any, b: any) =>
+    Number(a.used) > Number(b.used) ? a : b
+  );
+
+  lowestUsed = yearlyData.reduce((a: any, b: any) =>
+    Number(a.used) < Number(b.used) ? a : b
+  );
+
+  bestUtilization = yearlyData.reduce((a: any, b: any) =>
+    Number(a.utilizationRate) > Number(b.utilizationRate) ? a : b
+  );
+
+  worstUtilization = yearlyData.reduce((a: any, b: any) =>
+    Number(a.utilizationRate) < Number(b.utilizationRate) ? a : b
+  );
+}
+
+
   /* ================= RENDER ================= */
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-100">
@@ -408,8 +446,99 @@ export default function DashboardPage() {
                   </LineChart>
                 </ResponsiveContainer>
               </ChartCard>
+              {/* ================= ANALYTICS SUMMARY ================= */}
+<section className="mb-12">
+  <div className="rounded-[24px] p-6 bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-luxury">
+    <h3 className="font-display text-xl mb-6">
+      Fiscal Year Performance Insights
+    </h3>
+
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-sm">
+
+      {/* Highest Total Budget */}
+      <div>
+        <p className="text-slate-400 uppercase text-xs mb-1">
+          Highest Total Budget
+        </p>
+        <p className="text-lg font-semibold">
+          FY {highestTotal?.fiscalYear}
+        </p>
+        <p>
+          ₱{Number(highestTotal?.total || 0).toLocaleString()}
+        </p>
+      </div>
+
+      {/* Lowest Total Budget */}
+      <div>
+        <p className="text-slate-400 uppercase text-xs mb-1">
+          Lowest Total Budget
+        </p>
+        <p className="text-lg font-semibold">
+          FY {lowestTotal?.fiscalYear}
+        </p>
+        <p>
+          ₱{Number(lowestTotal?.total || 0).toLocaleString()}
+        </p>
+      </div>
+
+      {/* Highest Spending */}
+      <div>
+        <p className="text-slate-400 uppercase text-xs mb-1">
+          Highest Spending
+        </p>
+        <p className="text-lg font-semibold">
+          FY {highestUsed?.fiscalYear}
+        </p>
+        <p>
+          ₱{Number(highestUsed?.used || 0).toLocaleString()}
+        </p>
+      </div>
+
+      {/* Lowest Spending */}
+      <div>
+        <p className="text-slate-400 uppercase text-xs mb-1">
+          Lowest Spending
+        </p>
+        <p className="text-lg font-semibold">
+          FY {lowestUsed?.fiscalYear}
+        </p>
+        <p>
+          ₱{Number(lowestUsed?.used || 0).toLocaleString()}
+        </p>
+      </div>
+
+      {/* Best Utilization */}
+      <div>
+        <p className="text-slate-400 uppercase text-xs mb-1">
+          Best Utilization
+        </p>
+        <p className="text-lg font-semibold">
+          FY {bestUtilization?.fiscalYear}
+        </p>
+        <p>
+          {Number(bestUtilization?.utilizationRate || 0).toFixed(1)}%
+        </p>
+      </div>
+
+      {/* Worst Utilization */}
+      <div>
+        <p className="text-slate-400 uppercase text-xs mb-1">
+          Lowest Utilization
+        </p>
+        <p className="text-lg font-semibold">
+          FY {worstUtilization?.fiscalYear}
+        </p>
+        <p>
+          {Number(worstUtilization?.utilizationRate || 0).toFixed(1)}%
+        </p>
+      </div>
+
+    </div>
+  </div>
+</section>
             </div>
           </section>
+
         )}
 
         {/* ================= APPROVAL STATUS ================= */}
