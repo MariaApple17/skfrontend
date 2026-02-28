@@ -108,62 +108,29 @@ export default function DashboardPage() {
     ? ((budget.used / budget.total) * 100).toFixed(1)
     : '0.0';
 
-    /* ================= ADVANCED ALL MODE ANALYTICS ================= */
+    /* ================= BUDGET HEALTH ================= */
 
-const yearlyData = isAllMode ? data.yearly ?? [] : [];
+const numericUtilization = Number(utilizationRate);
 
-/* Ranking */
-const rankedYears = [...yearlyData]
-  .sort((a, b) => Number(b.used) - Number(a.used));
+let budgetHealth: 'HEALTHY' | 'WARNING' | 'RISK' = 'HEALTHY';
 
-const highestSpendingYear = rankedYears[0];
-const lowestSpendingYear =
-  rankedYears.length > 0
-    ? rankedYears[rankedYears.length - 1]
-    : null;
-
-/* Highest Utilization */
-const highestUtilizationYear = [...yearlyData].sort(
-  (a, b) =>
-    Number(b.utilizationRate) - Number(a.utilizationRate)
-)[0];
-
-/* Growth Calculation */
-let growthRate = 0;
-let growthDirection: 'up' | 'down' | 'stable' = 'stable';
-
-if (yearlyData.length >= 2) {
-  const first = yearlyData[0];
-  const last = yearlyData[yearlyData.length - 1];
-
-  if (Number(first.total) > 0) {
-    growthRate =
-      ((Number(last.total) - Number(first.total)) /
-        Number(first.total)) *
-      100;
-
-    if (growthRate > 0) growthDirection = 'up';
-    else if (growthRate < 0) growthDirection = 'down';
-  }
+if (numericUtilization > 85) {
+  budgetHealth = 'RISK';
+} else if (numericUtilization > 60) {
+  budgetHealth = 'WARNING';
 }
 
-/* Efficiency Score */
-const efficiencyScore =
-  yearlyData.length > 0
-    ? (
-        yearlyData.reduce(
-  (sum: number, y: any) =>
-    sum + Number(y.utilizationRate ?? 0),
-  0
-) / yearlyData.length
-      ).toFixed(2)
-    : '0.00';
+/* ================= RISK DETECTION ================= */
 
-/* Overspending Detection */
-const overspendingYears = yearlyData.filter(
-  (y: any) =>
-    Number(y.used ?? 0) > Number(y.total ?? 0)
+const riskyCategories = Object.entries(byCategory ?? {}).filter(
+  ([_, c]: any) => Number(c?.utilizationRate ?? 0) > 90
 );
+
+const currentMonth = new Date().getMonth();
+const lateYear = currentMonth >= 9; // October+
+
+const lowUtilizationRisk =
+  lateYear && numericUtilization < 50;
 
   /* ================= RENDER ================= */
   return (
@@ -328,7 +295,7 @@ const overspendingYears = yearlyData.filter(
               value={`₱${budget.used.toLocaleString()}`} 
               icon={TrendingUp}
               highlight
-              subtitle={`${utilizationRate}% utilized`}
+              subtitle={`${utilizationRate}% utilized • ${budgetHealth}`}
               delay="stagger-5"
             />
           </div>
@@ -390,6 +357,27 @@ const overspendingYears = yearlyData.filter(
     );
   })}
 </div>
+{(riskyCategories.length > 0 || lowUtilizationRisk) && (
+  <div className="mt-8 rounded-[24px] p-6 bg-rose-50 border border-rose-200 shadow-soft">
+    <h3 className="font-display text-lg text-rose-800 mb-4">
+      🚨 Financial Risk Alerts
+    </h3>
+
+    <div className="space-y-2 text-sm text-rose-700">
+      {riskyCategories.map(([name]: any) => (
+        <p key={name}>
+          ⚠ {name} exceeded 90% utilization.
+        </p>
+      ))}
+
+      {lowUtilizationRisk && (
+        <p>
+          ⚠ Budget utilization is below 50% near fiscal year end.
+        </p>
+      )}
+    </div>
+  </div>
+)}
   </section>
 )}
         {/* ================= CHARTS (ALL MODE) ================= */}
@@ -466,74 +454,6 @@ const overspendingYears = yearlyData.filter(
                 </ResponsiveContainer>
               </ChartCard>
             </div>
-            {/* ================= EXECUTIVE INTELLIGENCE ================= */}
-<div className="mt-12 rounded-[24px] p-6 bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-luxury">
-  <h3 className="font-display text-xl mb-6">
-    Executive Budget Intelligence
-  </h3>
-
-  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6 text-sm">
-
-    {/* Highest Spending */}
-    <div>
-      <p className="text-slate-400 uppercase text-xs mb-1">
-        🏆 Highest Spending Year
-      </p>
-      <p className="text-2xl font-semibold">
-        {highestSpendingYear?.fiscalYear ?? '-'}
-      </p>
-      <p>
-        ₱{Number(highestSpendingYear?.used ?? 0).toLocaleString()}
-      </p>
-    </div>
-
-    {/* Lowest Spending */}
-    <div>
-      <p className="text-slate-400 uppercase text-xs mb-1">
-        📉 Lowest Spending Year
-      </p>
-      <p className="text-2xl font-semibold">
-        {lowestSpendingYear?.fiscalYear ?? '-'}
-      </p>
-    </div>
-
-    {/* Growth */}
-    <div>
-      <p className="text-slate-400 uppercase text-xs mb-1">
-        📈 Budget Growth
-      </p>
-      <p className="text-2xl font-semibold">
-        {growthRate.toFixed(2)}%
-        {growthDirection === 'up' && ' ↑'}
-        {growthDirection === 'down' && ' ↓'}
-      </p>
-    </div>
-
-    {/* Efficiency */}
-    <div>
-      <p className="text-slate-400 uppercase text-xs mb-1">
-        📊 Efficiency Score
-      </p>
-      <p className="text-2xl font-semibold">
-        {efficiencyScore}%
-      </p>
-    </div>
-
-    {/* Overspending */}
-    <div>
-      <p className="text-slate-400 uppercase text-xs mb-1">
-        🔴 Overspending
-      </p>
-      <p className="text-2xl font-semibold">
-        {overspendingYears.length > 0
-          ? `${overspendingYears.length} Year(s)`
-          : 'None'}
-      </p>
-    </div>
-
-  </div>
-</div>
-
           </section>
         )}
 
