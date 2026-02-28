@@ -278,138 +278,100 @@ export default function DashboardPage() {
         </section>
 
         {!isAllMode && (
+ <section className="mb-12 animate-fade-in opacity-0">
+  <div className="mb-6">
+    <h2 className="font-display text-2xl text-slate-900 mb-1">
+      Budget Utilization Overview
+    </h2>
+    <p className="text-sm text-slate-500">
+      Spending vs remaining allocation for selected fiscal year
+    </p>
+  </div>
+
+  <ChartCard title="Spending Distribution">
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart
+        data={[
+          { name: 'Used', amount: budget.used },
+          { name: 'Remaining', amount: budget.total - budget.used },
+        ]}
+      >
+        <XAxis dataKey="name" />
+        <YAxis />
+        <Tooltip />
+        <Bar dataKey="amount" fill="#10b981" radius={[8, 8, 0, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  </ChartCard>
+</section>
+)}
+{/* ================= CATEGORY UTILIZATION COMPARISON ================= */}
+{!isAllMode && (
   <section className="mb-12 animate-fade-in opacity-0">
     <div className="mb-6">
       <h2 className="font-display text-2xl text-slate-900 mb-1">
-        Budget By Category
+        Category Utilization Comparison
       </h2>
       <p className="text-sm text-slate-500">
-        Category caps and utilization for current fiscal year
+        Cap vs Allocated vs Used by category
       </p>
     </div>
-<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-  {(['GENERAL ADMINISTRATIVE PROGRAM', 'SK YOUTH DEVELOPMENT AND EMPOWERMENT PROGRAM'] as const).map((category) => {
 
-    const c =
-      Array.isArray(byCategory)
-        ? byCategory[category === 'GENERAL ADMINISTRATIVE PROGRAM' ? 0 : 1] ?? {}
-        : byCategory?.[category] ?? {};
-
-    const cap = Number(c.cap ?? 0);
-    const allocated = Number(c.allocated ?? 0);
-    const used = Number(c.used ?? 0);
-    const remaining = Number(c.remaining ?? 0);
-    const utilization = Number(c.utilizationRate ?? 0);
-
-    return (
-      <div
-        key={category}
-        className="glass-effect border border-slate-200/60 shadow-soft rounded-[24px] p-6"
-      >
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
-          {category}
-        </p>
-
-        <p className="text-2xl font-display text-slate-900 mb-4">
-          ₱{cap.toLocaleString()}
-        </p>
-
-        <div className="space-y-1 text-sm text-slate-600">
-          <p className="font-semibold text-blue-600">
-            Allocated: ₱{allocated.toLocaleString()}
-          </p>
-          <p>Used: ₱{used.toLocaleString()}</p>
-          <p>Remaining: ₱{remaining.toLocaleString()}</p>
-          <p>Utilization: {utilization.toFixed(1)}%</p>
-        </div>
-
-        <div className="mt-4 h-2 w-full bg-slate-200 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600"
-            style={{ width: `${Math.min(utilization, 100)}%` }}
-          />
-        </div>
-      </div>
-    );
-  })}
-</div>
+    <ChartCard title="Budget Performance by Category">
+      <ResponsiveContainer width="100%" height={320}>
+        <BarChart
+          data={Object.keys(byCategory).map((key: any) => ({
+            category: key,
+            cap: byCategory[key]?.cap ?? 0,
+            allocated: byCategory[key]?.allocated ?? 0,
+            used: byCategory[key]?.used ?? 0,
+          }))}
+        >
+          <XAxis dataKey="category" />
+          <YAxis />
+          <Tooltip />
+          <Bar dataKey="cap" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+          <Bar dataKey="allocated" fill="#f59e0b" radius={[6, 6, 0, 0]} />
+          <Bar dataKey="used" fill="#10b981" radius={[6, 6, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </ChartCard>
   </section>
 )}
         {/* ================= CHARTS (ALL MODE) ================= */}
         {isAllMode && (
-          <section className="mb-12 animate-fade-in opacity-0">
-            <div className="mb-6">
-              <h2 className="font-display text-2xl text-slate-900 mb-1">
-                Budget Analytics
-              </h2>
-              <p className="text-sm text-slate-500">
-                Comprehensive overview across all fiscal years
-              </p>
-            </div>
+         <section className="mb-12">
+  <div className="rounded-[24px] p-6 bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-luxury">
+    <h3 className="font-display text-xl mb-4">Spending Analytics Insight</h3>
 
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              <ChartCard title="Budget by Fiscal Year">
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={data.yearly}>
-                    <XAxis 
-                      dataKey="fiscalYear" 
-                      stroke="#94a3b8"
-                      style={{ fontSize: '12px' }}
-                    />
-                    <YAxis 
-                      stroke="#94a3b8"
-                      style={{ fontSize: '12px' }}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                        border: 'none',
-                        borderRadius: '12px',
-                        color: '#fff',
-                        fontSize: '12px'
-                      }}
-                    />
-                    <Bar dataKey="total" fill="#3b82f6" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="allocated" fill="#10b981" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="administrativeAmount" fill="#f59e0b" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="youthAmount" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartCard>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+      <div>
+        <p className="text-slate-400 uppercase text-xs mb-1">Utilization Rate</p>
+        <p className="text-2xl font-semibold">
+          {utilizationRate}%
+        </p>
+      </div>
 
-              <ChartCard title="Utilization Trend">
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={data.yearly}>
-                    <XAxis 
-                      dataKey="fiscalYear" 
-                      stroke="#94a3b8"
-                      style={{ fontSize: '12px' }}
-                    />
-                    <YAxis 
-                      stroke="#94a3b8"
-                      style={{ fontSize: '12px' }}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                        border: 'none',
-                        borderRadius: '12px',
-                        color: '#fff',
-                        fontSize: '12px'
-                      }}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="utilizationRate" 
-                      stroke="#f59e0b" 
-                      strokeWidth={3}
-                      dot={{ fill: '#f59e0b', r: 4 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartCard>
-            </div>
-          </section>
+      <div>
+        <p className="text-slate-400 uppercase text-xs mb-1">Remaining Budget</p>
+        <p className="text-2xl font-semibold">
+          ₱{(budget.total - budget.used).toLocaleString()}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-slate-400 uppercase text-xs mb-1">Spending Status</p>
+        <p className="text-2xl font-semibold">
+          {Number(utilizationRate) > 80
+            ? 'High Utilization'
+            : Number(utilizationRate) > 50
+            ? 'Moderate Spending'
+            : 'Low Spending'}
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
         )}
 
         {/* ================= APPROVAL STATUS ================= */}
