@@ -413,7 +413,7 @@ if (!isAllMode && byCategory) {
 {topCategory && (
   <div className="mt-6 text-sm text-slate-600">
     <span className="font-semibold text-slate-800">
-      🏆 Highest Spending Category:
+      🏆 Highest Spending Area:
     </span>{' '}
     {topCategory[0]} (
     ₱{Number(topCategory[1]?.used ?? 0).toLocaleString()})
