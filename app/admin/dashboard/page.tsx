@@ -307,36 +307,75 @@ export default function DashboardPage() {
 )}
 {/* ================= CATEGORY UTILIZATION COMPARISON ================= */}
 {/* ================= CATEGORY UTILIZATION COMPARISON ================= */}
-{!isAllMode && (
+{isAllMode && (
   <section className="mb-12 animate-fade-in opacity-0">
     <div className="mb-6">
       <h2 className="font-display text-2xl text-slate-900 mb-1">
-        Category Utilization Comparison
+        3-Year Budget Comparison
       </h2>
       <p className="text-sm text-slate-500">
-        Cap vs Allocated vs Used by category
+        Compare current year with previous two fiscal years
       </p>
     </div>
 
-    <ChartCard title="Budget Performance by Category">
-      <ResponsiveContainer width="100%" height={320}>
-        <BarChart
-          data={(Array.isArray(byCategory) ? byCategory : []).map((c: any) => ({
-            category: c.category,
-            cap: Number(c.cap ?? 0),
-            allocated: Number(c.allocated ?? 0),
-            used: Number(c.used ?? 0),
-          }))}
-        >
-          <XAxis dataKey="category" />
-          <YAxis />
-          <Tooltip />
-          <Bar dataKey="cap" fill="#3b82f6" radius={[6, 6, 0, 0]} />
-          <Bar dataKey="allocated" fill="#f59e0b" radius={[6, 6, 0, 0]} />
-          <Bar dataKey="used" fill="#10b981" radius={[6, 6, 0, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
-    </ChartCard>
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+
+      {/* === TOTAL & ALLOCATED COMPARISON === */}
+      <ChartCard title="Total vs Allocated vs Used">
+        <ResponsiveContainer width="100%" height={320}>
+          <BarChart data={data.yearly}>
+            <XAxis dataKey="fiscalYear" />
+            <YAxis />
+            <Tooltip />
+            <Bar dataKey="total" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="allocated" fill="#f59e0b" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="used" fill="#10b981" radius={[6, 6, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartCard>
+
+      {/* === UTILIZATION TREND === */}
+      <ChartCard title="Utilization Trend (%)">
+        <ResponsiveContainer width="100%" height={320}>
+          <LineChart data={data.yearly}>
+            <XAxis dataKey="fiscalYear" />
+            <YAxis />
+            <Tooltip />
+            <Line
+              type="monotone"
+              dataKey="utilizationRate"
+              stroke="#f59e0b"
+              strokeWidth={3}
+              dot={{ r: 5 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </ChartCard>
+
+    </div>
+
+    {/* === EXECUTIVE INSIGHT SUMMARY === */}
+    <div className="mt-8 rounded-[24px] p-6 bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-luxury">
+      <h3 className="font-display text-xl mb-4">
+        Executive Summary
+      </h3>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+        {data.yearly.map((year: any) => (
+          <div key={year.fiscalYear}>
+            <p className="uppercase text-xs text-slate-400 mb-1">
+              FY {year.fiscalYear}
+            </p>
+            <p className="text-lg font-semibold">
+              ₱{Number(year.total).toLocaleString()}
+            </p>
+            <p className="text-xs text-slate-300">
+              {year.utilizationRate}% utilized
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
   </section>
 )}
         {/* ================= CHARTS (ALL MODE) ================= */}
