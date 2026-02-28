@@ -162,15 +162,6 @@ if (!isAllMode && byCategory) {
     )[0];
   }
 }
-/* ================= FRIENDLY CATEGORY NAMES ================= */
-
-const categoryNameMap: Record<string, string> = {
-  ADMINISTRATIVE: 'General Administrative Program',
-  YOUTH: 'SK Youth Development and Empowerment Program',
-  'GENERAL ADMINISTRATIVE PROGRAM': 'General Administrative Program',
-  'SK YOUTH DEVELOPMENT AND EMPOWERMENT PROGRAM':
-    'SK Youth Development and Empowerment Program',
-};
 
   /* ================= RENDER ================= */
   return (
@@ -365,7 +356,6 @@ const categoryNameMap: Record<string, string> = {
     const remaining = Number(c.remaining ?? 0);
     const utilization = Number(c.utilizationRate ?? 0);
     
-    
 
     return (
       <div
@@ -420,15 +410,15 @@ const categoryNameMap: Record<string, string> = {
     </div>
   </div>
 )}
+
 {topCategory && (
   <div className="mt-6 text-sm text-slate-600">
     <span className="font-semibold text-slate-800">
-      🏆 Highest Spending Classification:
+      🏆 Highest Spending Area:
     </span>{' '}
-    {categoryNameMap[topCategory[0]] ?? topCategory[0]} (
+    {topCategory[0]} (
     ₱{Number(topCategory[1]?.used ?? 0).toLocaleString()})
   </div>
-  
 )}
   </section>
 )}
@@ -440,7 +430,6 @@ const categoryNameMap: Record<string, string> = {
     {procurementEfficiency}% processed
   </div>
 )}
-
         {/* ================= CHARTS (ALL MODE) ================= */}
         {isAllMode && (
           <section className="mb-12 animate-fade-in opacity-0">
