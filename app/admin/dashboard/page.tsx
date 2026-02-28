@@ -276,143 +276,131 @@ export default function DashboardPage() {
             />
           </div>
         </section>
+{isAllMode && (() => {
 
-        {!isAllMode && (
- <section className="mb-12 animate-fade-in opacity-0">
-  <div className="mb-6">
-    <h2 className="font-display text-2xl text-slate-900 mb-1">
-      Budget Utilization Overview
-    </h2>
-    <p className="text-sm text-slate-500">
-      Spending vs remaining allocation for selected fiscal year
-    </p>
-  </div>
+  const yearlyData = Array.isArray(data.yearly)
+    ? data.yearly
+    : [];
 
-  <ChartCard title="Spending Distribution">
-    <ResponsiveContainer width="100%" height={300}>
-      <BarChart
-        data={[
-          { name: 'Used', amount: budget.used },
-          { name: 'Remaining', amount: budget.total - budget.used },
-        ]}
-      >
-        <XAxis dataKey="name" />
-        <YAxis />
-        <Tooltip />
-        <Bar dataKey="amount" fill="#10b981" radius={[8, 8, 0, 0]} />
-      </BarChart>
-    </ResponsiveContainer>
-  </ChartCard>
-</section>
-)}
-{/* ================= CATEGORY UTILIZATION COMPARISON ================= */}
-{/* ================= CATEGORY UTILIZATION COMPARISON ================= */}
-{isAllMode && (
-  <section className="mb-12 animate-fade-in opacity-0">
-    <div className="mb-6">
-      <h2 className="font-display text-2xl text-slate-900 mb-1">
-        3-Year Budget Comparison
-      </h2>
-      <p className="text-sm text-slate-500">
-        Compare current year with previous two fiscal years
-      </p>
-    </div>
+  return (
+    <>
+      <section className="mb-12 animate-fade-in opacity-0">
 
-    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="mb-6">
+          <h2 className="font-display text-2xl text-slate-900 mb-1">
+            3-Year Budget Comparison
+          </h2>
+          <p className="text-sm text-slate-500">
+            Compare current year with previous two fiscal years
+          </p>
+        </div>
 
-      {/* === TOTAL & ALLOCATED COMPARISON === */}
-      <ChartCard title="Total vs Allocated vs Used">
-        <ResponsiveContainer width="100%" height={320}>
-          <BarChart data={data.yearly}>
-            <XAxis dataKey="fiscalYear" />
-            <YAxis />
-            <Tooltip />
-            <Bar dataKey="total" fill="#3b82f6" radius={[6, 6, 0, 0]} />
-            <Bar dataKey="allocated" fill="#f59e0b" radius={[6, 6, 0, 0]} />
-            <Bar dataKey="used" fill="#10b981" radius={[6, 6, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </ChartCard>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
-      {/* === UTILIZATION TREND === */}
-      <ChartCard title="Utilization Trend (%)">
-        <ResponsiveContainer width="100%" height={320}>
-          <LineChart data={data.yearly}>
-            <XAxis dataKey="fiscalYear" />
-            <YAxis />
-            <Tooltip />
-            <Line
-              type="monotone"
-              dataKey="utilizationRate"
-              stroke="#f59e0b"
-              strokeWidth={3}
-              dot={{ r: 5 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </ChartCard>
+          {/* TOTAL / ALLOCATED / USED */}
+          <ChartCard title="Total vs Allocated vs Used">
+            <ResponsiveContainer width="100%" height={320}>
+              <BarChart data={yearlyData}>
+                <XAxis dataKey="fiscalYear" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="total" fill="#3b82f6" radius={[6,6,0,0]} />
+                <Bar dataKey="allocated" fill="#f59e0b" radius={[6,6,0,0]} />
+                <Bar dataKey="used" fill="#10b981" radius={[6,6,0,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
 
-    </div>
+          {/* UTILIZATION TREND */}
+          <ChartCard title="Utilization Trend (%)">
+            <ResponsiveContainer width="100%" height={320}>
+              <LineChart data={yearlyData}>
+                <XAxis dataKey="fiscalYear" />
+                <YAxis />
+                <Tooltip />
+                <Line
+                  type="monotone"
+                  dataKey="utilizationRate"
+                  stroke="#f59e0b"
+                  strokeWidth={3}
+                  dot={{ r: 5 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartCard>
 
-    {/* === EXECUTIVE INSIGHT SUMMARY === */}
-    <div className="mt-8 rounded-[24px] p-6 bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-luxury">
-      <h3 className="font-display text-xl mb-4">
-        Executive Summary
-      </h3>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
-        {data.yearly.map((year: any) => (
-          <div key={year.fiscalYear}>
-            <p className="uppercase text-xs text-slate-400 mb-1">
-              FY {year.fiscalYear}
-            </p>
-            <p className="text-lg font-semibold">
-              ₱{Number(year.total).toLocaleString()}
-            </p>
-            <p className="text-xs text-slate-300">
-              {year.utilizationRate}% utilized
-            </p>
+        {/* EXECUTIVE SUMMARY */}
+        <div className="mt-8 rounded-[24px] p-6 bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-luxury">
+          <h3 className="font-display text-xl mb-4">
+            Executive Summary
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+            {yearlyData.map((year: any) => (
+              <div key={year.fiscalYear}>
+                <p className="uppercase text-xs text-slate-400 mb-1">
+                  FY {year.fiscalYear}
+                </p>
+                <p className="text-lg font-semibold">
+                  ₱{Number(year.total || 0).toLocaleString()}
+                </p>
+                <p className="text-xs text-slate-300">
+                  {Number(year.utilizationRate || 0)}% utilized
+                </p>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-    </div>
-  </section>
-)}
-        {/* ================= CHARTS (ALL MODE) ================= */}
-        {isAllMode && (
-         <section className="mb-12">
-  <div className="rounded-[24px] p-6 bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-luxury">
-    <h3 className="font-display text-xl mb-4">Spending Analytics Insight</h3>
+        </div>
 
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-      <div>
-        <p className="text-slate-400 uppercase text-xs mb-1">Utilization Rate</p>
-        <p className="text-2xl font-semibold">
-          {utilizationRate}%
-        </p>
-      </div>
+      </section>
 
-      <div>
-        <p className="text-slate-400 uppercase text-xs mb-1">Remaining Budget</p>
-        <p className="text-2xl font-semibold">
-          ₱{(budget.total - budget.used).toLocaleString()}
-        </p>
-      </div>
+      {/* SPENDING ANALYTICS INSIGHT */}
+      <section className="mb-12">
+        <div className="rounded-[24px] p-6 bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-luxury">
+          <h3 className="font-display text-xl mb-4">
+            Spending Analytics Insight
+          </h3>
 
-      <div>
-        <p className="text-slate-400 uppercase text-xs mb-1">Spending Status</p>
-        <p className="text-2xl font-semibold">
-          {Number(utilizationRate) > 80
-            ? 'High Utilization'
-            : Number(utilizationRate) > 50
-            ? 'Moderate Spending'
-            : 'Low Spending'}
-        </p>
-      </div>
-    </div>
-  </div>
-</section>
-        )}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <p className="text-slate-400 uppercase text-xs mb-1">
+                Utilization Rate
+              </p>
+              <p className="text-2xl font-semibold">
+                {utilizationRate}%
+              </p>
+            </div>
+
+            <div>
+              <p className="text-slate-400 uppercase text-xs mb-1">
+                Remaining Budget
+              </p>
+              <p className="text-2xl font-semibold">
+                ₱{(budget.total - budget.used).toLocaleString()}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-slate-400 uppercase text-xs mb-1">
+                Spending Status
+              </p>
+              <p className="text-2xl font-semibold">
+                {Number(utilizationRate) > 80
+                  ? 'High Utilization'
+                  : Number(utilizationRate) > 50
+                  ? 'Moderate Spending'
+                  : 'Low Spending'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+
+})()}
 
         {/* ================= APPROVAL STATUS ================= */}
         {!isAllMode && (
