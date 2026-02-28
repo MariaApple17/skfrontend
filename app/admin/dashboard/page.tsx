@@ -84,8 +84,8 @@ export default function DashboardPage() {
     ? data.totals
     : data.budget ?? { total: 0, allocated: 0, used: 0 };
   const byCategory = !isAllMode
-    ? data.budget?.byCategory ?? {}
-    : {};
+  ? data.budget?.byCategory ?? []
+  : [];
 
   const unallocatedBudget = Math.max(
     budget.total - budget.allocated,
@@ -306,6 +306,7 @@ export default function DashboardPage() {
 </section>
 )}
 {/* ================= CATEGORY UTILIZATION COMPARISON ================= */}
+{/* ================= CATEGORY UTILIZATION COMPARISON ================= */}
 {!isAllMode && (
   <section className="mb-12 animate-fade-in opacity-0">
     <div className="mb-6">
@@ -320,11 +321,11 @@ export default function DashboardPage() {
     <ChartCard title="Budget Performance by Category">
       <ResponsiveContainer width="100%" height={320}>
         <BarChart
-          data={Object.keys(byCategory).map((key: any) => ({
-            category: key,
-            cap: byCategory[key]?.cap ?? 0,
-            allocated: byCategory[key]?.allocated ?? 0,
-            used: byCategory[key]?.used ?? 0,
+          data={(Array.isArray(byCategory) ? byCategory : []).map((c: any) => ({
+            category: c.category,
+            cap: Number(c.cap ?? 0),
+            allocated: Number(c.allocated ?? 0),
+            used: Number(c.used ?? 0),
           }))}
         >
           <XAxis dataKey="category" />
