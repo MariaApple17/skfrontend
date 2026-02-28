@@ -108,43 +108,62 @@ export default function DashboardPage() {
     ? ((budget.used / budget.total) * 100).toFixed(1)
     : '0.0';
 
-    /* ================= ALL YEARS ANALYTICS ================= */
+    /* ================= ADVANCED ALL MODE ANALYTICS ================= */
 
-const yearlyData = Array.isArray(data.yearly) ? data.yearly : [];
+const yearlyData = isAllMode ? data.yearly ?? [] : [];
 
-let highestTotal: any = null;
-let lowestTotal: any = null;
-let highestUsed: any = null;
-let lowestUsed: any = null;
-let bestUtilization: any = null;
-let worstUtilization: any = null;
+/* Ranking */
+const rankedYears = [...yearlyData]
+  .sort((a, b) => Number(b.used) - Number(a.used));
 
-if (isAllMode && yearlyData.length > 0) {
-  highestTotal = yearlyData.reduce((a: any, b: any) =>
-    Number(a.total) > Number(b.total) ? a : b
-  );
+const highestSpendingYear = rankedYears[0];
+const lowestSpendingYear =
+  rankedYears.length > 0
+    ? rankedYears[rankedYears.length - 1]
+    : null;
 
-  lowestTotal = yearlyData.reduce((a: any, b: any) =>
-    Number(a.total) < Number(b.total) ? a : b
-  );
+/* Highest Utilization */
+const highestUtilizationYear = [...yearlyData].sort(
+  (a, b) =>
+    Number(b.utilizationRate) - Number(a.utilizationRate)
+)[0];
 
-  highestUsed = yearlyData.reduce((a: any, b: any) =>
-    Number(a.used) > Number(b.used) ? a : b
-  );
+/* Growth Calculation */
+let growthRate = 0;
+let growthDirection: 'up' | 'down' | 'stable' = 'stable';
 
-  lowestUsed = yearlyData.reduce((a: any, b: any) =>
-    Number(a.used) < Number(b.used) ? a : b
-  );
+if (yearlyData.length >= 2) {
+  const first = yearlyData[0];
+  const last = yearlyData[yearlyData.length - 1];
 
-  bestUtilization = yearlyData.reduce((a: any, b: any) =>
-    Number(a.utilizationRate) > Number(b.utilizationRate) ? a : b
-  );
+  if (Number(first.total) > 0) {
+    growthRate =
+      ((Number(last.total) - Number(first.total)) /
+        Number(first.total)) *
+      100;
 
-  worstUtilization = yearlyData.reduce((a: any, b: any) =>
-    Number(a.utilizationRate) < Number(b.utilizationRate) ? a : b
-  );
+    if (growthRate > 0) growthDirection = 'up';
+    else if (growthRate < 0) growthDirection = 'down';
+  }
 }
 
+/* Efficiency Score */
+const efficiencyScore =
+  yearlyData.length > 0
+    ? (
+        yearlyData.reduce(
+  (sum: number, y: any) =>
+    sum + Number(y.utilizationRate ?? 0),
+  0
+) / yearlyData.length
+      ).toFixed(2)
+    : '0.00';
+
+/* Overspending Detection */
+const overspendingYears = yearlyData.filter(
+  (y: any) =>
+    Number(y.used ?? 0) > Number(y.total ?? 0)
+);
 
   /* ================= RENDER ================= */
   return (
@@ -446,145 +465,76 @@ if (isAllMode && yearlyData.length > 0) {
                   </LineChart>
                 </ResponsiveContainer>
               </ChartCard>
-              {/* ================= YEAR BREAKDOWN ================= */}
-<div className="mt-12">
-  <h2 className="font-display text-2xl text-slate-900 mb-6">
-    Fiscal Year Detailed Breakdown
-  </h2>
+            </div>
+            {/* ================= EXECUTIVE INTELLIGENCE ================= */}
+<div className="mt-12 rounded-[24px] p-6 bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-luxury">
+  <h3 className="font-display text-xl mb-6">
+    Executive Budget Intelligence
+  </h3>
 
-  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-    {data.yearly.map((year: any) => {
-      const utilization = Number(year.utilizationRate);
+  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6 text-sm">
 
-      return (
-        <div
-          key={year.fiscalYear}
-          className="glass-effect border border-slate-200/60 shadow-soft rounded-[24px] p-6"
-        >
-          <p className="text-xs uppercase tracking-wider text-slate-500 mb-2">
-            Fiscal Year
-          </p>
+    {/* Highest Spending */}
+    <div>
+      <p className="text-slate-400 uppercase text-xs mb-1">
+        🏆 Highest Spending Year
+      </p>
+      <p className="text-2xl font-semibold">
+        {highestSpendingYear?.fiscalYear ?? '-'}
+      </p>
+      <p>
+        ₱{Number(highestSpendingYear?.used ?? 0).toLocaleString()}
+      </p>
+    </div>
 
-          <h3 className="text-2xl font-display text-slate-900 mb-4">
-            {year.fiscalYear}
-          </h3>
+    {/* Lowest Spending */}
+    <div>
+      <p className="text-slate-400 uppercase text-xs mb-1">
+        📉 Lowest Spending Year
+      </p>
+      <p className="text-2xl font-semibold">
+        {lowestSpendingYear?.fiscalYear ?? '-'}
+      </p>
+    </div>
 
-          <div className="space-y-1 text-sm text-slate-600">
-            <p>Total: ₱{Number(year.total).toLocaleString()}</p>
-            <p>Administrative: ₱{Number(year.administrativeAmount).toLocaleString()}</p>
-            <p>Youth: ₱{Number(year.youthAmount).toLocaleString()}</p>
-            <p>Allocated: ₱{Number(year.allocated).toLocaleString()}</p>
-            <p>Used: ₱{Number(year.used).toLocaleString()}</p>
-            <p>Remaining: ₱{Number(year.remaining).toLocaleString()}</p>
-            <p className="font-semibold">
-              Utilization: {utilization.toFixed(2)}%
-            </p>
-          </div>
+    {/* Growth */}
+    <div>
+      <p className="text-slate-400 uppercase text-xs mb-1">
+        📈 Budget Growth
+      </p>
+      <p className="text-2xl font-semibold">
+        {growthRate.toFixed(2)}%
+        {growthDirection === 'up' && ' ↑'}
+        {growthDirection === 'down' && ' ↓'}
+      </p>
+    </div>
 
-          <div className="mt-4 h-2 w-full bg-slate-200 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600"
-              style={{ width: `${Math.min(utilization, 100)}%` }}
-            />
-          </div>
-        </div>
-      );
-    })}
+    {/* Efficiency */}
+    <div>
+      <p className="text-slate-400 uppercase text-xs mb-1">
+        📊 Efficiency Score
+      </p>
+      <p className="text-2xl font-semibold">
+        {efficiencyScore}%
+      </p>
+    </div>
+
+    {/* Overspending */}
+    <div>
+      <p className="text-slate-400 uppercase text-xs mb-1">
+        🔴 Overspending
+      </p>
+      <p className="text-2xl font-semibold">
+        {overspendingYears.length > 0
+          ? `${overspendingYears.length} Year(s)`
+          : 'None'}
+      </p>
+    </div>
+
   </div>
 </div>
-              {/* ================= ANALYTICS SUMMARY ================= */}
-<section className="mb-12">
-  <div className="rounded-[24px] p-6 bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-luxury">
-    <h3 className="font-display text-xl mb-6">
-      Fiscal Year Performance Insights
-    </h3>
 
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-sm">
-
-      {/* Highest Total Budget */}
-      <div>
-        <p className="text-slate-400 uppercase text-xs mb-1">
-          Highest Total Budget
-        </p>
-        <p className="text-lg font-semibold">
-          FY {highestTotal?.fiscalYear}
-        </p>
-        <p>
-          ₱{Number(highestTotal?.total || 0).toLocaleString()}
-        </p>
-      </div>
-
-      {/* Lowest Total Budget */}
-      <div>
-        <p className="text-slate-400 uppercase text-xs mb-1">
-          Lowest Total Budget
-        </p>
-        <p className="text-lg font-semibold">
-          FY {lowestTotal?.fiscalYear}
-        </p>
-        <p>
-          ₱{Number(lowestTotal?.total || 0).toLocaleString()}
-        </p>
-      </div>
-
-      {/* Highest Spending */}
-      <div>
-        <p className="text-slate-400 uppercase text-xs mb-1">
-          Highest Spending
-        </p>
-        <p className="text-lg font-semibold">
-          FY {highestUsed?.fiscalYear}
-        </p>
-        <p>
-          ₱{Number(highestUsed?.used || 0).toLocaleString()}
-        </p>
-      </div>
-
-      {/* Lowest Spending */}
-      <div>
-        <p className="text-slate-400 uppercase text-xs mb-1">
-          Lowest Spending
-        </p>
-        <p className="text-lg font-semibold">
-          FY {lowestUsed?.fiscalYear}
-        </p>
-        <p>
-          ₱{Number(lowestUsed?.used || 0).toLocaleString()}
-        </p>
-      </div>
-
-      {/* Best Utilization */}
-      <div>
-        <p className="text-slate-400 uppercase text-xs mb-1">
-          Best Utilization
-        </p>
-        <p className="text-lg font-semibold">
-          FY {bestUtilization?.fiscalYear}
-        </p>
-        <p>
-          {Number(bestUtilization?.utilizationRate || 0).toFixed(1)}%
-        </p>
-      </div>
-
-      {/* Worst Utilization */}
-      <div>
-        <p className="text-slate-400 uppercase text-xs mb-1">
-          Lowest Utilization
-        </p>
-        <p className="text-lg font-semibold">
-          FY {worstUtilization?.fiscalYear}
-        </p>
-        <p>
-          {Number(worstUtilization?.utilizationRate || 0).toFixed(1)}%
-        </p>
-      </div>
-
-    </div>
-  </div>
-</section>
-            </div>
           </section>
-
         )}
 
         {/* ================= APPROVAL STATUS ================= */}
