@@ -145,7 +145,14 @@ const BudgetAllocationUpsertModal: React.FC<
       ? selected.allowedCategories
       : CATEGORY_OPTIONS;
   }, [classifications, form.classificationId]);
-  
+
+  const filteredObjects = useMemo(() => {
+  if (!form.classificationId) return [];
+
+  return objects.filter(
+    (o) => String(o.classificationId) === form.classificationId
+  );
+}, [objects, form.classificationId]);
 
   const resetForm = () => {
     setForm(initialForm);
@@ -193,6 +200,17 @@ const checkExistingAllocation = useCallback(
   },
   [form.budgetId, form.classificationId, form.category, allocationId]
 );
+useEffect(() => {
+  if (form.objectOfExpenditureId) {
+    checkExistingAllocation(form.objectOfExpenditureId);
+  }
+}, [
+  form.budgetId,
+  form.classificationId,
+  form.category,
+  form.objectOfExpenditureId,
+  checkExistingAllocation,
+]);
 
   const fetchClassificationLimits = useCallback(
     async (classificationId: string, category?: BudgetCategory | '') => {
@@ -350,6 +368,7 @@ const checkExistingAllocation = useCallback(
   budgetId: '',
   limitId: '',     // ✅ RESET
   allocatedAmount: '',
+   objectOfExpenditureId: '',
 }));
 
     setLimitInfo(null);
@@ -1002,7 +1021,7 @@ const getAvailableBudgetsForNewLimit = () => {
             <FlatSelect
               label="Object of Expenditure"
               value={form.objectOfExpenditureId}
-              options={objects.map((o) => ({
+              options={filteredObjects.map((o) => ({
                 id: o.id,
                 label: `${o.code} - ${o.name}`,
               }))}

@@ -27,9 +27,9 @@ interface BudgetAllocation {
   category?: 'ADMINISTRATIVE' | 'YOUTH';
   createdAt: string;
 
-  program: { id: number; code: string; name: string };
-  classification: { id: number; code: string; name: string };
-  object: { id: number; code: string; name: string };
+ program?: { id: number; code: string; name: string } | null;
+classification?: { id: number; code: string; name: string } | null;
+object?: { id: number; code: string; name: string } | null;
 }
 
 interface Option {
@@ -323,11 +323,11 @@ function BudgetAllocationContent() {
                     </div>
                     <div>
                       <h3 className="font-medium text-slate-700 leading-snug">
-                        {alloc.program.code}
-                      </h3>
-                      <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                        {alloc.program.name}
-                      </p>
+  {alloc.program?.code ?? 'ADMIN'}
+</h3>
+<p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+  {alloc.program?.name ?? 'Administrative Allocation'}
+</p>
                     </div>
                   </div>
 
@@ -361,13 +361,13 @@ function BudgetAllocationContent() {
                   <div className="text-sm text-slate-500">
                     <span className="text-slate-400 text-xs">Classification:</span>{' '}
                     <span className="text-slate-600">
-                      {alloc.classification.code} — {alloc.classification.name}
+                     {alloc.classification?.code ?? '-'} — {alloc.classification?.name ?? '-'}
                     </span>
                   </div>
                   <div className="text-sm text-slate-500">
                     <span className="text-slate-400 text-xs">Object:</span>{' '}
                     <span className="text-slate-600">
-                      {alloc.object.code} — {alloc.object.name}
+                      {alloc.object?.code ?? '-'} — {alloc.object?.name ?? '-'}
                     </span>
                   </div>
                 </div>

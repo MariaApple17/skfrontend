@@ -27,6 +27,11 @@ interface ObjectOfExpenditure {
   description: string | null;
   createdAt: string;
   deletedAt: string | null;
+  classificationId: number;
+  classification?: {
+    id: number;
+    name: string;
+  };
 }
 
 /* ================= CONTENT ================= */
@@ -186,6 +191,9 @@ function ObjectOfExpenditureContent() {
                     <p className="text-xs text-slate-500">
                       Code: {obj.code}
                     </p>
+                    <p className="text-xs text-blue-700 font-medium">
+  {obj.classification?.name}
+</p>
                   </div>
                 </div>
 

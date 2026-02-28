@@ -1,10 +1,6 @@
 'use client';
 
-import {
-  useEffect,
-  useState,
-} from 'react';
-
+import { useEffect, useState } from 'react';
 import {
   Layers,
   Pencil,
@@ -19,7 +15,7 @@ import ClassificationUpsertModal
   from '@/components/reusable/modal/ClassificationUpsertModal';
 
 /* ================= TYPES ================= */
-interface Classification {
+interface BudgetClassification {
   id: number;
   code: string;
   name: string;
@@ -29,9 +25,11 @@ interface Classification {
   deletedAt: string | null;
 }
 
+/* ================= CONTENT ================= */
 function ClassificationContent() {
-  const [items, setItems] = useState<Classification[]>([]);
+  const [items, setItems] = useState<BudgetClassification[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+
   const [categoryFilter, setCategoryFilter] = useState<
     '' | 'ADMINISTRATIVE' | 'YOUTH'
   >('');
@@ -47,8 +45,11 @@ function ClassificationContent() {
     setLoading(true);
     try {
       const res = await api.get('/classifications', {
-        params: { category: categoryFilter || undefined },
+        params: {
+          category: categoryFilter || undefined,
+        },
       });
+
       setItems(res.data?.data ?? []);
     } catch (err) {
       console.error('Failed to fetch classifications', err);
@@ -93,17 +94,14 @@ function ClassificationContent() {
             setEditId(null);
             setModalOpen(true);
           }}
-          className="
-            flex items-center gap-2 px-4 py-2 rounded-xl
-            bg-blue-900 text-white text-sm font-medium
-            hover:bg-blue-800 transition
-          "
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-900 text-white text-sm font-medium hover:bg-blue-800 transition"
         >
           <Plus size={16} />
           New Classification
         </button>
       </div>
 
+      {/* ================= FILTER ================= */}
       <div className="mb-6 max-w-xs">
         <label className="text-xs font-medium text-slate-500 block mb-1.5">
           Category Filter
@@ -130,22 +128,8 @@ function ClassificationContent() {
         </p>
       ) : items.length === 0 ? (
         /* EMPTY STATE */
-        <div
-          className="
-            w-full rounded-2xl bg-white p-12
-            shadow-lg shadow-slate-200/60
-            flex flex-col items-center justify-center
-            text-center
-          "
-        >
-          <div
-            className="
-              w-16 h-16 rounded-2xl
-              bg-blue-900/10
-              flex items-center justify-center
-              mb-5
-            "
-          >
+        <div className="w-full rounded-2xl bg-white p-12 shadow-lg shadow-slate-200/60 flex flex-col items-center justify-center text-center">
+          <div className="w-16 h-16 rounded-2xl bg-blue-900/10 flex items-center justify-center mb-5">
             <Layers className="text-blue-900" size={28} />
           </div>
 
@@ -164,11 +148,7 @@ function ClassificationContent() {
               setEditId(null);
               setModalOpen(true);
             }}
-            className="
-              flex items-center gap-2 px-4 py-2 rounded-xl
-              bg-blue-900 text-white text-sm font-medium
-              hover:bg-blue-800 transition
-            "
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-900 text-white text-sm font-medium hover:bg-blue-800 transition"
           >
             <Plus size={16} />
             Create First Classification
@@ -180,27 +160,13 @@ function ClassificationContent() {
           {items.map((cls) => (
             <div
               key={cls.id}
-              className="
-                rounded-2xl bg-white p-5
-                shadow-lg shadow-slate-200/60
-                hover:shadow-xl hover:-translate-y-0.5
-                transition-all duration-200
-              "
+              className="rounded-2xl bg-white p-5 shadow-lg shadow-slate-200/60 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200"
             >
               {/* CARD HEADER */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div
-                    className="
-                      w-10 h-10 rounded-xl
-                      bg-blue-900/10
-                      flex items-center justify-center
-                    "
-                  >
-                    <Layers
-                      className="text-blue-900"
-                      size={18}
-                    />
+                  <div className="w-10 h-10 rounded-xl bg-blue-900/10 flex items-center justify-center">
+                    <Layers className="text-blue-900" size={18} />
                   </div>
 
                   <div>
@@ -220,12 +186,7 @@ function ClassificationContent() {
                       setEditId(cls.id);
                       setModalOpen(true);
                     }}
-                    className="
-                      p-2 rounded-lg
-                      text-blue-900
-                      hover:bg-blue-900/10
-                      transition
-                    "
+                    className="p-2 rounded-lg text-blue-900 hover:bg-blue-900/10 transition"
                   >
                     <Pencil size={16} />
                   </button>
@@ -235,12 +196,7 @@ function ClassificationContent() {
                       setDeleteId(cls.id);
                       setAlertOpen(true);
                     }}
-                    className="
-                      p-2 rounded-lg
-                      text-red-600
-                      hover:bg-red-600/10
-                      transition
-                    "
+                    className="p-2 rounded-lg text-red-600 hover:bg-red-600/10 transition"
                   >
                     <Trash2 size={16} />
                   </button>
@@ -254,6 +210,7 @@ function ClassificationContent() {
                 </p>
               )}
 
+              {/* CATEGORY BADGES */}
               <div className="mb-3 flex flex-wrap gap-2">
                 {(cls.allowedCategories ?? []).map((category) => (
                   <span
@@ -263,6 +220,7 @@ function ClassificationContent() {
                     {category}
                   </span>
                 ))}
+
                 {(cls.allowedCategories ?? []).length === 0 && (
                   <span className="rounded-full bg-slate-100 text-slate-500 text-xs font-medium px-2 py-1">
                     No category restriction

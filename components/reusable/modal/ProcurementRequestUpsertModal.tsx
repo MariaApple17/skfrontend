@@ -273,7 +273,7 @@ const data = (res.data.data ?? []).map((a: any) => ({
 
           {!isEdit && (
             <FlatSelect
-              label="Budget Allocation"
+              label="Source of Funds"
               value={allocationId ?? ''}
               options={allocations.map(a => ({
                 id: String(a.id),

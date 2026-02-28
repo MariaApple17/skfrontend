@@ -20,6 +20,12 @@ interface ObjectOfExpenditure {
   code: string;
   name: string;
   description?: string;
+  classificationId: number; // ✅ ADDED
+}
+
+interface BudgetClassification {
+  id: number;
+  name: string;
 }
 
 interface ObjectOfExpenditureUpsertModalProps {
@@ -38,6 +44,7 @@ interface FormState {
 interface FormErrors {
   code?: string;
   name?: string;
+  classificationId?: string; // ✅ ADDED
 }
 
 /* ================= COMPONENT ================= */
@@ -52,6 +59,9 @@ const ObjectOfExpenditureUpsertModal: React.FC<
     description: '',
   });
 
+  const [classificationId, setClassificationId] = useState<string>(''); // ✅ ADDED
+  const [classifications, setClassifications] = useState<BudgetClassification[]>([]); // ✅ ADDED
+
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
 
@@ -65,12 +75,30 @@ const ObjectOfExpenditureUpsertModal: React.FC<
     message: '',
   });
 
+  /* ================= LOAD CLASSIFICATIONS ================= */
+  useEffect(() => {
+    if (!open) return;
+
+    api.get('/classifications')
+      .then((res) => {
+        setClassifications(res.data.data || res.data);
+      })
+      .catch(() => {
+        setAlert({
+          open: true,
+          type: 'error',
+          message: 'Failed to load classifications.',
+        });
+      });
+  }, [open]);
+
   /* ================= LOAD DATA (EDIT) ================= */
   useEffect(() => {
     if (!open) return;
 
     if (!isEdit) {
       setForm({ code: '', name: '', description: '' });
+      setClassificationId('');
       setErrors({});
       return;
     }
@@ -88,6 +116,8 @@ const ObjectOfExpenditureUpsertModal: React.FC<
           name: data.name,
           description: data.description ?? '',
         });
+
+        setClassificationId(String(data.classificationId)); // ✅ ADDED
       } catch (err) {
         setAlert({
           open: true,
@@ -112,6 +142,10 @@ const ObjectOfExpenditureUpsertModal: React.FC<
       newErrors.name = 'Name is required';
     }
 
+    if (!classificationId) {
+      newErrors.classificationId = 'Classification is required';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -129,6 +163,7 @@ const ObjectOfExpenditureUpsertModal: React.FC<
           {
             name: form.name,
             description: form.description,
+            classificationId, // ✅ ADDED
           }
         );
       } else {
@@ -136,6 +171,7 @@ const ObjectOfExpenditureUpsertModal: React.FC<
           code: form.code,
           name: form.name,
           description: form.description,
+          classificationId, // ✅ ADDED
         });
       }
 
@@ -204,6 +240,32 @@ const ObjectOfExpenditureUpsertModal: React.FC<
               icon={FileText}
             />
 
+            {/* ✅ CLASSIFICATION DROPDOWN */}
+            <div className="w-full space-y-1.5">
+              <label className="text-xs font-medium text-gray-500">
+                Classification
+              </label>
+
+              <select
+                value={classificationId}
+                onChange={(e) => setClassificationId(e.target.value)}
+                className="w-full rounded-xl px-4 py-3 text-sm bg-gray-100"
+              >
+                <option value="">Select Classification</option>
+                {classifications.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+
+              {errors.classificationId && (
+                <p className="text-xs text-red-500">
+                  {errors.classificationId}
+                </p>
+              )}
+            </div>
+
             <div className="w-full space-y-1.5">
               <label className="text-xs font-medium text-gray-500">
                 Description
@@ -252,7 +314,6 @@ const ObjectOfExpenditureUpsertModal: React.FC<
         </div>
       </div>
 
-      {/* ALERT */}
       <AlertModal
         open={alert.open}
         type={alert.type}

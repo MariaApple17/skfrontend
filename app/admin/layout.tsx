@@ -18,6 +18,7 @@ import {
   Shield,
   Users,
   Wallet,
+  Briefcase,
 } from 'lucide-react';
 import {
   usePathname,
@@ -209,6 +210,7 @@ export default function DashboardLayout({
         },
       ],
     },
+    
     {
       label: 'Procurement',
       icon: ClipboardList,
@@ -240,6 +242,12 @@ export default function DashboardLayout({
           permission: 'OBJECT_EXPENDITURES_VIEW',
         },
       ],
+    },
+    {
+      label: 'Plantilla of SK',
+      href: '/admin/sk-plantilla',
+      icon: Briefcase,
+    
     },
     {
       label: 'Programs Management',
