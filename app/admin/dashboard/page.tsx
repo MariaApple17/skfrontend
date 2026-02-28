@@ -446,6 +446,52 @@ if (isAllMode && yearlyData.length > 0) {
                   </LineChart>
                 </ResponsiveContainer>
               </ChartCard>
+              {/* ================= YEAR BREAKDOWN ================= */}
+<div className="mt-12">
+  <h2 className="font-display text-2xl text-slate-900 mb-6">
+    Fiscal Year Detailed Breakdown
+  </h2>
+
+  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+    {data.yearly.map((year: any) => {
+      const utilization = Number(year.utilizationRate);
+
+      return (
+        <div
+          key={year.fiscalYear}
+          className="glass-effect border border-slate-200/60 shadow-soft rounded-[24px] p-6"
+        >
+          <p className="text-xs uppercase tracking-wider text-slate-500 mb-2">
+            Fiscal Year
+          </p>
+
+          <h3 className="text-2xl font-display text-slate-900 mb-4">
+            {year.fiscalYear}
+          </h3>
+
+          <div className="space-y-1 text-sm text-slate-600">
+            <p>Total: ₱{Number(year.total).toLocaleString()}</p>
+            <p>Administrative: ₱{Number(year.administrativeAmount).toLocaleString()}</p>
+            <p>Youth: ₱{Number(year.youthAmount).toLocaleString()}</p>
+            <p>Allocated: ₱{Number(year.allocated).toLocaleString()}</p>
+            <p>Used: ₱{Number(year.used).toLocaleString()}</p>
+            <p>Remaining: ₱{Number(year.remaining).toLocaleString()}</p>
+            <p className="font-semibold">
+              Utilization: {utilization.toFixed(2)}%
+            </p>
+          </div>
+
+          <div className="mt-4 h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600"
+              style={{ width: `${Math.min(utilization, 100)}%` }}
+            />
+          </div>
+        </div>
+      );
+    })}
+  </div>
+</div>
               {/* ================= ANALYTICS SUMMARY ================= */}
 <section className="mb-12">
   <div className="rounded-[24px] p-6 bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-luxury">
