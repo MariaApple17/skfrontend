@@ -97,12 +97,28 @@ export default function DashboardPage() {
   const logs = data.logs ?? { recent: [] };
 
   const approvalMap = approvals.reduce(
+    
     (acc: any, a: any) => {
       acc[a.status] = a._count?.id || 0;
       return acc;
     },
     { PENDING: 0, APPROVED: 0, REJECTED: 0 }
-  );
+  ); 
+  /* ================= PROCUREMENT EFFICIENCY ================= */
+
+const totalProcessed =
+  approvalMap.APPROVED +
+  approvalMap.REJECTED;
+
+const totalRequests =
+  approvalMap.APPROVED +
+  approvalMap.REJECTED +
+  approvalMap.PENDING;
+
+const procurementEfficiency =
+  totalRequests > 0
+    ? ((totalProcessed / totalRequests) * 100).toFixed(1)
+    : '0.0';
 
   const utilizationRate = budget.total > 0 
     ? ((budget.used / budget.total) * 100).toFixed(1)
@@ -131,6 +147,21 @@ const lateYear = currentMonth >= 9; // October+
 
 const lowUtilizationRisk =
   lateYear && numericUtilization < 50;
+  /* ================= TOP SPENDING CATEGORY ================= */
+
+let topCategory: any = null;
+
+if (!isAllMode && byCategory) {
+  const entries = Object.entries(byCategory);
+
+  if (entries.length > 0) {
+    topCategory = entries.sort(
+      (a: any, b: any) =>
+        Number(b[1]?.used ?? 0) -
+        Number(a[1]?.used ?? 0)
+    )[0];
+  }
+}
 
   /* ================= RENDER ================= */
   return (
@@ -378,7 +409,25 @@ const lowUtilizationRisk =
     </div>
   </div>
 )}
+
+{topCategory && (
+  <div className="mt-6 text-sm text-slate-600">
+    <span className="font-semibold text-slate-800">
+      🏆 Highest Spending Category:
+    </span>{' '}
+    {topCategory[0]} (
+    ₱{Number(topCategory[1]?.used ?? 0).toLocaleString()})
+  </div>
+)}
   </section>
+)}
+{!isAllMode && (
+  <div className="mb-10 text-sm text-slate-600">
+    <span className="font-semibold text-slate-800">
+      📊 Procurement Efficiency:
+    </span>{' '}
+    {procurementEfficiency}% processed
+  </div>
 )}
         {/* ================= CHARTS (ALL MODE) ================= */}
         {isAllMode && (
