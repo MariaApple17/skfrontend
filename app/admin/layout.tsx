@@ -68,6 +68,28 @@ export default function DashboardLayout({
   // ✅ SYSTEM PROFILE STATE
   const [systemProfile, setSystemProfile] =
     useState<SystemProfile | null>(null);
+    const [activeFiscalYear, setActiveFiscalYear] =
+  useState<number | null>(null);
+
+  /* ================= LOAD ACTIVE FISCAL YEAR ================= */
+useEffect(() => {
+  const loadActiveFiscalYear = async () => {
+    try {
+      const res = await api.get('/fiscal-years');
+      const fiscalYears = res.data?.data ?? [];
+
+      const active = fiscalYears.find((fy: any) => fy.isActive);
+
+      if (active) {
+        setActiveFiscalYear(active.year);
+      }
+    } catch (err) {
+      console.warn('Failed to load active fiscal year');
+    }
+  };
+
+  loadActiveFiscalYear();
+}, []);
 
   // Add global styles
   useEffect(() => {
@@ -374,9 +396,9 @@ export default function DashboardLayout({
               {/* TEXT */}
               {!collapsed && (
                 <div className="space-y-1 max-w-full animate-slide-in">
-                  <p className="text-sm font-medium text-slate-700 truncate px-2">
-                    {systemProfile?.systemName ?? 'System'}
-                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+  {activeFiscalYear ? `Fiscal Year ${activeFiscalYear}` : ''}
+</p>
 
              <p className="text-xs text-slate-400 px-2 leading-relaxed line-clamp-2 break-words">
   {systemProfile?.systemDescription ?? 'Management Platform'}
@@ -522,9 +544,9 @@ export default function DashboardLayout({
               <h1 className="text-xl font-medium text-slate-700">
                 {currentPage}
               </h1>
-              <p className="text-xs text-slate-400 mt-1">
-                {systemProfile?.fiscalYear?.year && `Fiscal Year ${systemProfile.fiscalYear.year}`}
-              </p>
+              {activeFiscalYear
+  ? ` · FY ${activeFiscalYear}`
+  : ''}
             </div>
 
             {user && (
