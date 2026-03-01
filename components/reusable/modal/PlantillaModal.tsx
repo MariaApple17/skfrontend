@@ -157,23 +157,30 @@ useEffect(() => {
 
   /* ================= SUBMIT ================= */
   const handleSubmit = () => {
-    if (!selectedOfficial || !selectedBudget) return;
+  if (!selectedOfficial || !selectedBudget) return;
 
-    onSubmit({
-      officialId: selectedOfficial.id,
-      officialName: selectedOfficial.fullName,
-      position: selectedOfficial.position,
-      budgetAllocationId: selectedBudget.id,
-      classificationName:
-        selectedBudget.classification?.name ?? '',
-      amount: Number(form.amount),
-      periodCovered: form.periodCovered,
-      remarks: form.remarks,
-    });
+  const amountNumber = Number(form.amount);
 
-    onClose();
-  };
+  if (!amountNumber || amountNumber <= 0) {
+    alert('Invalid amount');
+    return;
+  }
 
+  if (amountNumber > selectedBudget.remainingAmount) {
+    alert('Amount exceeds remaining budget');
+    return;
+  }
+
+  onSubmit({
+    officialId: selectedOfficial.id,
+    budgetAllocationId: selectedBudget.id,
+    amount: amountNumber,
+    periodCovered: form.periodCovered,
+    remarks: form.remarks,
+  });
+
+  onClose();
+};
   const filteredOfficials = officials.filter((o) =>
     `${o.fullName} ${o.position}`
       .toLowerCase()

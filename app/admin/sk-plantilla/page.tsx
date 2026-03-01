@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import PlantillaModal from '@/components/reusable/modal/PlantillaModal';
 import api from '@/components/lib/api';
 
@@ -29,10 +29,12 @@ interface FiscalYear {
 export default function PlantillaPage() {
   const [isOpen, setIsOpen] = useState(false);
   const [data, setData] = useState<Plantilla[]>([]);
-  const [loading, setLoading] = useState(true);
   const [activeFiscal, setActiveFiscal] = useState<FiscalYear | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  /* ================= FETCH DATA ================= */
+  /* ============================================
+     FETCH PLANTILLA BY ACTIVE FISCAL YEAR
+  ============================================ */
   const fetchPlantilla = async () => {
     try {
       setLoading(true);
@@ -50,12 +52,13 @@ export default function PlantillaPage() {
 
       setActiveFiscal(active);
 
-      // 2️⃣ Fetch plantilla by fiscal year
+      // 2️⃣ Fetch plantilla records
       const res = await api.get(
         `/sk-plantilla/fiscal/${active.id}`
       );
 
       setData(res.data.data);
+
     } catch (error) {
       console.error('Failed to fetch plantilla:', error);
     } finally {
@@ -67,11 +70,16 @@ export default function PlantillaPage() {
     fetchPlantilla();
   }, []);
 
-  /* ================= HANDLE CREATE ================= */
-  const handleCreate = async (newPlantilla: any) => {
+  /* ============================================
+     HANDLE CREATE (Instant UI Update)
+  ============================================ */
+  const handleCreate = async (payload: any) => {
     try {
-      await api.post('/sk-plantilla', newPlantilla);
-      fetchPlantilla(); // reload after create
+      const res = await api.post('/sk-plantilla', payload);
+
+      // Immediately show newly created record
+      setData((prev) => [res.data.data, ...prev]);
+
     } catch (error) {
       console.error('Create failed:', error);
     }
@@ -102,9 +110,9 @@ export default function PlantillaPage() {
 
         {/* TABLE */}
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
+          <table className="w-full border-collapse text-sm">
             <thead>
-              <tr className="bg-gray-100 text-left text-sm">
+              <tr className="bg-gray-100 text-left">
                 <th className="p-3">Name</th>
                 <th className="p-3">Position</th>
                 <th className="p-3">Classification</th>
@@ -113,6 +121,7 @@ export default function PlantillaPage() {
                 <th className="p-3">Remarks</th>
               </tr>
             </thead>
+
             <tbody>
               {loading ? (
                 <tr>
@@ -135,18 +144,23 @@ export default function PlantillaPage() {
                     <td className="p-3 font-medium">
                       {item.official?.fullName}
                     </td>
+
                     <td className="p-3">
                       {item.official?.position}
                     </td>
+
                     <td className="p-3">
                       {item.budgetAllocation?.classification?.name}
                     </td>
+
                     <td className="p-3">
                       ₱ {Number(item.amount).toLocaleString()}
                     </td>
+
                     <td className="p-3">
                       {item.periodCovered}
                     </td>
+
                     <td className="p-3">
                       {item.remarks}
                     </td>
@@ -159,6 +173,7 @@ export default function PlantillaPage() {
 
       </div>
 
+      {/* MODAL */}
       <PlantillaModal
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
