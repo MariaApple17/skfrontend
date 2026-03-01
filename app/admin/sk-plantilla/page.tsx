@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import PlantillaModal from '@/components/reusable/modal/PlantillaModal';
 import api from '@/components/lib/api';
 
@@ -25,34 +25,25 @@ export default function PlantillaPage() {
   const [data, setData] = useState<Plantilla[]>([]);
   const [loading, setLoading] = useState(true);
 
-  /* ================= FETCH ACTIVE YEAR DATA ================= */
-  const fetchPlantilla = useCallback(async () => {
+  /* ================= FETCH DATA ================= */
+  const fetchPlantilla = async () => {
     try {
-      setLoading(true);
-
       const res = await api.get('/sk-plantilla');
 
-      console.log("FULL RESPONSE:", res.data);
-
-      // Your controller returns:
+      // Your backend returns:
       // { success: true, data: [...] }
-      if (res.data.success) {
-        setData(res.data.data);
-      } else {
-        setData([]);
-      }
+      setData(res.data.data);
 
     } catch (error) {
       console.error('Failed to fetch plantilla:', error);
-      setData([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
     fetchPlantilla();
-  }, [fetchPlantilla]);
+  }, []);
 
   /* ================= HANDLE CREATE ================= */
   const handleCreate = async (newPlantilla: any) => {
@@ -60,8 +51,8 @@ export default function PlantillaPage() {
       const res = await api.post('/sk-plantilla', newPlantilla);
 
       if (res.data.success) {
-        await fetchPlantilla(); // reload active year data
-        setIsOpen(false);       // close modal
+        await fetchPlantilla();
+        setIsOpen(false);
       }
 
     } catch (error) {
@@ -80,7 +71,7 @@ export default function PlantillaPage() {
               Plantilla of SK Officials
             </h1>
             <p className="text-sm text-gray-500">
-              Active Fiscal Year
+              Fiscal Year: 2026
             </p>
           </div>
 
@@ -97,7 +88,7 @@ export default function PlantillaPage() {
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-gray-100 text-left text-sm">
-                <th className="p-3">ID</th>
+                <th className="p-3">ID</th> {/* ✅ ADDED */}
                 <th className="p-3">Name</th>
                 <th className="p-3">Position</th>
                 <th className="p-3">Classification</th>
@@ -117,7 +108,7 @@ export default function PlantillaPage() {
               ) : data.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center p-6 text-gray-400">
-                    No plantilla records for active fiscal year.
+                    No plantilla records yet.
                   </td>
                 </tr>
               ) : (
@@ -127,7 +118,7 @@ export default function PlantillaPage() {
                     className="border-t hover:bg-gray-50 transition"
                   >
                     <td className="p-3 font-medium">
-                      {item.id}
+                      {item.id} {/* ✅ NOW DISPLAYING */}
                     </td>
 
                     <td className="p-3 font-medium">
@@ -162,7 +153,6 @@ export default function PlantillaPage() {
 
       </div>
 
-      {/* MODAL */}
       <PlantillaModal
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
