@@ -37,6 +37,8 @@ export default function PlantillaPage() {
       // res.json({ data })
       const result = res.data?.data ?? res.data ?? [];
 
+      console.log("Fetched Plantilla:", result);
+
       setData(result);
     } catch (error) {
       console.error('Failed to fetch plantilla:', error);
@@ -90,6 +92,7 @@ export default function PlantillaPage() {
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-gray-100 text-left text-sm">
+                <th className="p-3">ID</th>
                 <th className="p-3">Name</th>
                 <th className="p-3">Position</th>
                 <th className="p-3">Classification</th>
@@ -98,16 +101,17 @@ export default function PlantillaPage() {
                 <th className="p-3">Remarks</th>
               </tr>
             </thead>
+
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="text-center p-6">
+                  <td colSpan={7} className="text-center p-6">
                     Loading...
                   </td>
                 </tr>
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center p-6 text-gray-400">
+                  <td colSpan={7} className="text-center p-6 text-gray-400">
                     No plantilla records for active fiscal year.
                   </td>
                 </tr>
@@ -118,20 +122,29 @@ export default function PlantillaPage() {
                     className="border-t hover:bg-gray-50 transition"
                   >
                     <td className="p-3 font-medium">
+                      {item.id}
+                    </td>
+
+                    <td className="p-3 font-medium">
                       {item.official?.fullName}
                     </td>
+
                     <td className="p-3">
                       {item.official?.position}
                     </td>
+
                     <td className="p-3">
                       {item.budgetAllocation?.classification?.name}
                     </td>
+
                     <td className="p-3">
                       ₱ {Number(item.amount).toLocaleString()}
                     </td>
+
                     <td className="p-3">
                       {item.periodCovered}
                     </td>
+
                     <td className="p-3">
                       {item.remarks || '-'}
                     </td>
