@@ -57,52 +57,44 @@ export default function PlantillaModal({
   const officialRef = useRef<HTMLDivElement>(null);
   const budgetRef = useRef<HTMLDivElement>(null);
 
- /* ================= LOAD DATA ================= */
-useEffect(() => {
-  if (!isOpen) return;
+  /* ================= LOAD DATA ================= */
+  useEffect(() => {
+    if (!isOpen) return;
 
-  async function loadData() {
-    try {
-      setLoading(true);
+    async function loadData() {
+      try {
+        setLoading(true);
 
-      // 1️⃣ Get active fiscal year
-      const fiscalRes = await api.get('/fiscal-years');
-      const activeFiscal = fiscalRes.data?.data?.find(
-        (f: any) => f.isActive
-      );
+        // 🔹 Get active fiscal year
+        const fiscalRes = await api.get('/fiscal-years');
+        const activeFiscal = fiscalRes.data?.data?.find(
+          (f: any) => f.isActive
+        );
 
-      if (!activeFiscal) {
-        console.error('No active fiscal year found');
-        return;
-      }
+        if (!activeFiscal) return;
 
-      // 2️⃣ Get SK Officials for that fiscal year
-      const officialsRes = await api.get(
-        `/sk-officials/fiscal/${activeFiscal.id}`
-      );
+        // 🔹 Get SK Officials
+        const officialsRes = await api.get(
+          `/sk-officials/fiscal/${activeFiscal.id}`
+        );
 
-      // 3️⃣ Get budget allocations for that fiscal year ONLY
-      const budgetRes = await api.get(
-        `/budget-allocations/fiscal/${activeFiscal.id}`
-      );
+        // 🔹 Get Budget Allocations (PAGINATED STRUCTURE)
+        const budgetRes = await api.get('/budget-allocations');
 
-      const allocations = budgetRes.data?.data || [];
+        // Backend returns:
+        // { data: [...], pagination: {...} }
+        const allocations = budgetRes.data?.data || [];
 
-      // 4️⃣ Filter: ADMINISTRATIVE + Personal Services only
-      const personalServices = allocations
-        .filter(
-          (b: any) =>
-            b?.classification?.name
-              ?.toLowerCase()
-              .includes('personal') &&
-            b?.category === 'ADMINISTRATIVE'
-        )
-        .map((b: any) => {
-          const remaining =
-            Number(b.allocatedAmount || 0) -
-            Number(b.usedAmount || 0);
-
-          return {
+        // 🔥 FILTER: ADMINISTRATIVE + Personal Services
+        const personalServices = allocations
+  .filter(
+    (b: any) =>
+      b?.classification?.name
+        ?.toLowerCase()
+        .includes('personal') &&
+      b?.category === 'ADMINISTRATIVE'
+  )
+          .map((b: any) => ({
             id: b.id,
             code: b.object?.code || '',
             program: b.program?.name || '',
@@ -115,22 +107,22 @@ useEffect(() => {
             object: `${b.object?.code || ''} — ${
               b.object?.name || ''
             }`,
-            remainingAmount: remaining > 0 ? remaining : 0,
-          };
-        })
-        .filter((b: any) => b.remainingAmount > 0); // 🚀 hide fully used budgets
+            remainingAmount:
+              Number(b.allocatedAmount || 0) -
+              Number(b.usedAmount || 0),
+          }));
 
-      setOfficials(officialsRes.data?.data || []);
-      setBudgets(personalServices);
-    } catch (error) {
-      console.error('Load error:', error);
-    } finally {
-      setLoading(false);
+        setOfficials(officialsRes.data?.data || []);
+        setBudgets(personalServices);
+      } catch (error) {
+        console.error('Load error:', error);
+      } finally {
+        setLoading(false);
+      }
     }
-  }
 
-  loadData();
-}, [isOpen]);
+    loadData();
+  }, [isOpen]);
 
   /* ================= CLOSE DROPDOWN OUTSIDE ================= */
   useEffect(() => {
@@ -157,30 +149,23 @@ useEffect(() => {
 
   /* ================= SUBMIT ================= */
   const handleSubmit = () => {
-  if (!selectedOfficial || !selectedBudget) return;
+    if (!selectedOfficial || !selectedBudget) return;
 
-  const amountNumber = Number(form.amount);
+    onSubmit({
+      officialId: selectedOfficial.id,
+      officialName: selectedOfficial.fullName,
+      position: selectedOfficial.position,
+      budgetAllocationId: selectedBudget.id,
+      classificationName:
+        selectedBudget.classification?.name ?? '',
+      amount: Number(form.amount),
+      periodCovered: form.periodCovered,
+      remarks: form.remarks,
+    });
 
-  if (!amountNumber || amountNumber <= 0) {
-    alert('Invalid amount');
-    return;
-  }
+    onClose();
+  };
 
-  if (amountNumber > selectedBudget.remainingAmount) {
-    alert('Amount exceeds remaining budget');
-    return;
-  }
-
-  onSubmit({
-    officialId: selectedOfficial.id,
-    budgetAllocationId: selectedBudget.id,
-    amount: amountNumber,
-    periodCovered: form.periodCovered,
-    remarks: form.remarks,
-  });
-
-  onClose();
-};
   const filteredOfficials = officials.filter((o) =>
     `${o.fullName} ${o.position}`
       .toLowerCase()

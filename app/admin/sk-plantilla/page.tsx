@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import PlantillaModal from '@/components/reusable/modal/PlantillaModal';
 import api from '@/components/lib/api';
 
@@ -20,45 +20,16 @@ interface Plantilla {
   remarks?: string;
 }
 
-interface FiscalYear {
-  id: number;
-  year: number;
-  isActive: boolean;
-}
-
 export default function PlantillaPage() {
   const [isOpen, setIsOpen] = useState(false);
   const [data, setData] = useState<Plantilla[]>([]);
-  const [activeFiscal, setActiveFiscal] = useState<FiscalYear | null>(null);
   const [loading, setLoading] = useState(true);
 
-  /* ============================================
-     FETCH PLANTILLA BY ACTIVE FISCAL YEAR
-  ============================================ */
+  /* ================= FETCH DATA ================= */
   const fetchPlantilla = async () => {
     try {
-      setLoading(true);
-
-      // 1️⃣ Get active fiscal year
-      const fiscalRes = await api.get('/fiscal-years');
-      const active = fiscalRes.data?.data?.find(
-        (f: FiscalYear) => f.isActive
-      );
-
-      if (!active) {
-        console.error('No active fiscal year found');
-        return;
-      }
-
-      setActiveFiscal(active);
-
-      // 2️⃣ Fetch plantilla records
-      const res = await api.get(
-        `/sk-plantilla/fiscal/${active.id}`
-      );
-
+      const res = await api.get('/sk-plantilla');
       setData(res.data.data);
-
     } catch (error) {
       console.error('Failed to fetch plantilla:', error);
     } finally {
@@ -70,16 +41,11 @@ export default function PlantillaPage() {
     fetchPlantilla();
   }, []);
 
-  /* ============================================
-     HANDLE CREATE (Instant UI Update)
-  ============================================ */
-  const handleCreate = async (payload: any) => {
+  /* ================= HANDLE CREATE ================= */
+  const handleCreate = async (newPlantilla: any) => {
     try {
-      const res = await api.post('/sk-plantilla', payload);
-
-      // Immediately show newly created record
-      setData((prev) => [res.data.data, ...prev]);
-
+      await api.post('/sk-plantilla', newPlantilla);
+      fetchPlantilla(); // reload from DB
     } catch (error) {
       console.error('Create failed:', error);
     }
@@ -96,7 +62,7 @@ export default function PlantillaPage() {
               Plantilla of SK Officials
             </h1>
             <p className="text-sm text-gray-500">
-              Fiscal Year: {activeFiscal?.year ?? '—'}
+              Fiscal Year: 2026
             </p>
           </div>
 
@@ -110,9 +76,9 @@ export default function PlantillaPage() {
 
         {/* TABLE */}
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-sm">
+          <table className="w-full border-collapse">
             <thead>
-              <tr className="bg-gray-100 text-left">
+              <tr className="bg-gray-100 text-left text-sm">
                 <th className="p-3">Name</th>
                 <th className="p-3">Position</th>
                 <th className="p-3">Classification</th>
@@ -121,7 +87,6 @@ export default function PlantillaPage() {
                 <th className="p-3">Remarks</th>
               </tr>
             </thead>
-
             <tbody>
               {loading ? (
                 <tr>
@@ -144,23 +109,18 @@ export default function PlantillaPage() {
                     <td className="p-3 font-medium">
                       {item.official?.fullName}
                     </td>
-
                     <td className="p-3">
                       {item.official?.position}
                     </td>
-
                     <td className="p-3">
                       {item.budgetAllocation?.classification?.name}
                     </td>
-
                     <td className="p-3">
                       ₱ {Number(item.amount).toLocaleString()}
                     </td>
-
                     <td className="p-3">
                       {item.periodCovered}
                     </td>
-
                     <td className="p-3">
                       {item.remarks}
                     </td>
@@ -173,7 +133,6 @@ export default function PlantillaPage() {
 
       </div>
 
-      {/* MODAL */}
       <PlantillaModal
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
