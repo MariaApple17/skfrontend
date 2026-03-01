@@ -1,26 +1,11 @@
 'use client';
 
-import React, {
-  useEffect,
-  useState,
-} from 'react';
-
-import {
-  Building2,
-  Calendar,
-  MapPin,
-  Upload,
-} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Building2, MapPin, Upload } from 'lucide-react';
 
 import api from '@/components/lib/api';
 import AlertModal from '@/components/reusable/modal/AlertModal';
 import FlatInput from '@/components/reusable/ui/FlatInput';
-
-interface FiscalYear {
-  id: number;
-  year: number;
-  isActive: boolean;
-}
 
 interface SystemProfile {
   id: number;
@@ -28,7 +13,6 @@ interface SystemProfile {
   systemDescription?: string;
   location?: string;
   logoUrl?: string;
-  fiscalYear: FiscalYear;
 }
 
 export default function SystemProfilePage() {
@@ -199,8 +183,7 @@ export default function SystemProfilePage() {
 
               <div className="mt-1 flex items-center gap-4 text-sm text-gray-500">
                 <span className="flex items-center gap-1">
-                  <Calendar size={14} />
-                  Fiscal Year {profile.fiscalYear.year}
+                  Global System Profile
                 </span>
 
                 {profile.location && (
