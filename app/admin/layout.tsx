@@ -449,7 +449,7 @@ useEffect(() => {
                   }}
                   className={`group relative flex w-full items-center gap-3 rounded-xl
                     ${collapsed ? 'justify-center px-3' : 'px-3.5'}
-                    py-2.5 text-sm font-medium transition-all duration-200
+                   py-2.5 text-[13px] font-semibold tracking-wide transition-all duration-200
                     ${
                       active
                         ? 'bg-slate-100 text-slate-700'
