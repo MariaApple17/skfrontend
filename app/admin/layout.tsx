@@ -386,7 +386,7 @@ useEffect(() => {
                       className="h-50 w-50 object-contain"
                     />
                   ) : (
-                    <span className="text-slate-600 font-medium text-lg">
+                    <span className="text-slate-900 font-medium text-lg">
                       {systemProfile?.systemName?.charAt(0) ?? 'S'}   
                     </span>
                   )}
