@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import PlantillaModal from '@/components/reusable/modal/PlantillaModal';
 import api from '@/components/lib/api';
 
@@ -25,27 +25,38 @@ export default function PlantillaPage() {
   const [data, setData] = useState<Plantilla[]>([]);
   const [loading, setLoading] = useState(true);
 
-  /* ================= FETCH DATA ================= */
-  const fetchPlantilla = async () => {
+  /* ================= FETCH ACTIVE YEAR DATA ================= */
+  const fetchPlantilla = useCallback(async () => {
     try {
+      setLoading(true);
+
       const res = await api.get('/sk-plantilla');
-      setData(res.data.data);
+
+      // Supports both:
+      // res.json(data)
+      // res.json({ data })
+      const result = res.data?.data ?? res.data ?? [];
+
+      setData(result);
     } catch (error) {
       console.error('Failed to fetch plantilla:', error);
+      setData([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchPlantilla();
-  }, []);
+  }, [fetchPlantilla]);
 
   /* ================= HANDLE CREATE ================= */
   const handleCreate = async (newPlantilla: any) => {
     try {
       await api.post('/sk-plantilla', newPlantilla);
-      fetchPlantilla(); // reload from DB
+
+      await fetchPlantilla();   // reload ACTIVE year data
+      setIsOpen(false);         // close modal
     } catch (error) {
       console.error('Create failed:', error);
     }
@@ -62,7 +73,7 @@ export default function PlantillaPage() {
               Plantilla of SK Officials
             </h1>
             <p className="text-sm text-gray-500">
-              Fiscal Year: 2026
+              Active Fiscal Year
             </p>
           </div>
 
@@ -97,7 +108,7 @@ export default function PlantillaPage() {
               ) : data.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-center p-6 text-gray-400">
-                    No plantilla records yet.
+                    No plantilla records for active fiscal year.
                   </td>
                 </tr>
               ) : (
@@ -122,7 +133,7 @@ export default function PlantillaPage() {
                       {item.periodCovered}
                     </td>
                     <td className="p-3">
-                      {item.remarks}
+                      {item.remarks || '-'}
                     </td>
                   </tr>
                 ))
@@ -133,6 +144,7 @@ export default function PlantillaPage() {
 
       </div>
 
+      {/* MODAL */}
       <PlantillaModal
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
