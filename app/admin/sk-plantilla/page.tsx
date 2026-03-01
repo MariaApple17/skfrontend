@@ -32,14 +32,16 @@ export default function PlantillaPage() {
 
       const res = await api.get('/sk-plantilla');
 
-      // Supports both:
-      // res.json(data)
-      // res.json({ data })
-      const result = res.data?.data ?? res.data ?? [];
+      console.log("FULL RESPONSE:", res.data);
 
-      console.log("Fetched Plantilla:", result);
+      // Your controller returns:
+      // { success: true, data: [...] }
+      if (res.data.success) {
+        setData(res.data.data);
+      } else {
+        setData([]);
+      }
 
-      setData(result);
     } catch (error) {
       console.error('Failed to fetch plantilla:', error);
       setData([]);
@@ -55,10 +57,13 @@ export default function PlantillaPage() {
   /* ================= HANDLE CREATE ================= */
   const handleCreate = async (newPlantilla: any) => {
     try {
-      await api.post('/sk-plantilla', newPlantilla);
+      const res = await api.post('/sk-plantilla', newPlantilla);
 
-      await fetchPlantilla();   // reload ACTIVE year data
-      setIsOpen(false);         // close modal
+      if (res.data.success) {
+        await fetchPlantilla(); // reload active year data
+        setIsOpen(false);       // close modal
+      }
+
     } catch (error) {
       console.error('Create failed:', error);
     }
