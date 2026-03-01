@@ -29,11 +29,7 @@ export default function PlantillaPage() {
   const fetchPlantilla = async () => {
     try {
       const res = await api.get('/sk-plantilla');
-
-      // Your backend returns:
-      // { success: true, data: [...] }
       setData(res.data.data);
-
     } catch (error) {
       console.error('Failed to fetch plantilla:', error);
     } finally {
@@ -48,13 +44,8 @@ export default function PlantillaPage() {
   /* ================= HANDLE CREATE ================= */
   const handleCreate = async (newPlantilla: any) => {
     try {
-      const res = await api.post('/sk-plantilla', newPlantilla);
-
-      if (res.data.success) {
-        await fetchPlantilla();
-        setIsOpen(false);
-      }
-
+      await api.post('/sk-plantilla', newPlantilla);
+      fetchPlantilla(); // reload from DB
     } catch (error) {
       console.error('Create failed:', error);
     }
@@ -88,7 +79,6 @@ export default function PlantillaPage() {
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-gray-100 text-left text-sm">
-                <th className="p-3">ID</th> {/* ✅ ADDED */}
                 <th className="p-3">Name</th>
                 <th className="p-3">Position</th>
                 <th className="p-3">Classification</th>
@@ -97,17 +87,16 @@ export default function PlantillaPage() {
                 <th className="p-3">Remarks</th>
               </tr>
             </thead>
-
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="text-center p-6">
+                  <td colSpan={6} className="text-center p-6">
                     Loading...
                   </td>
                 </tr>
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center p-6 text-gray-400">
+                  <td colSpan={6} className="text-center p-6 text-gray-400">
                     No plantilla records yet.
                   </td>
                 </tr>
@@ -118,31 +107,22 @@ export default function PlantillaPage() {
                     className="border-t hover:bg-gray-50 transition"
                   >
                     <td className="p-3 font-medium">
-                      {item.id} {/* ✅ NOW DISPLAYING */}
-                    </td>
-
-                    <td className="p-3 font-medium">
                       {item.official?.fullName}
                     </td>
-
                     <td className="p-3">
                       {item.official?.position}
                     </td>
-
                     <td className="p-3">
                       {item.budgetAllocation?.classification?.name}
                     </td>
-
                     <td className="p-3">
                       ₱ {Number(item.amount).toLocaleString()}
                     </td>
-
                     <td className="p-3">
                       {item.periodCovered}
                     </td>
-
                     <td className="p-3">
-                      {item.remarks || '-'}
+                      {item.remarks}
                     </td>
                   </tr>
                 ))
