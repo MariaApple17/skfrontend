@@ -70,9 +70,9 @@ export default function DashboardPage() {
         setError(err?.response?.data?.message || 'Failed to load dashboard')
       );
   }, [selectedFy]);
-if (!user) return null;
 
-if (!data && !error) return null;
+  if (!user || !data) return null;
+
   /* ================= NORMALIZE ================= */
   const isAllMode = data.mode === 'ALL';
 
