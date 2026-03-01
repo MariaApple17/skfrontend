@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import PlantillaModal from '@/components/reusable/modal/PlantillaModal';
 import api from '@/components/lib/api';
 
@@ -20,32 +20,66 @@ interface Plantilla {
   remarks?: string;
 }
 
+interface FiscalYear {
+  id: number;
+  year: number;
+}
+
 export default function PlantillaPage() {
   const [isOpen, setIsOpen] = useState(false);
   const [data, setData] = useState<Plantilla[]>([]);
+  const [activeYear, setActiveYear] = useState<FiscalYear | null>(null);
   const [loading, setLoading] = useState(true);
 
-  /* ================= FETCH DATA ================= */
-  const fetchPlantilla = async () => {
+  /* ================= FETCH ACTIVE YEAR ================= */
+  const fetchActiveYear = useCallback(async () => {
     try {
+      const res = await api.get('/fiscal-years/active');
+
+      if (res.data.success) {
+        setActiveYear(res.data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch active fiscal year:', error);
+    }
+  }, []);
+
+  /* ================= FETCH PLANTILLA ================= */
+  const fetchPlantilla = useCallback(async () => {
+    try {
+      setLoading(true);
+
       const res = await api.get('/sk-plantilla');
-      setData(res.data.data);
+
+      if (res.data.success) {
+        setData(res.data.data);
+      } else {
+        setData([]);
+      }
+
     } catch (error) {
       console.error('Failed to fetch plantilla:', error);
+      setData([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
+    fetchActiveYear();
     fetchPlantilla();
-  }, []);
+  }, [fetchActiveYear, fetchPlantilla]);
 
   /* ================= HANDLE CREATE ================= */
   const handleCreate = async (newPlantilla: any) => {
     try {
-      await api.post('/sk-plantilla', newPlantilla);
-      fetchPlantilla(); // reload from DB
+      const res = await api.post('/sk-plantilla', newPlantilla);
+
+      if (res.data.success) {
+        await fetchPlantilla();
+        setIsOpen(false);
+      }
+
     } catch (error) {
       console.error('Create failed:', error);
     }
@@ -62,7 +96,7 @@ export default function PlantillaPage() {
               Plantilla of SK Officials
             </h1>
             <p className="text-sm text-gray-500">
-              Fiscal Year: 2026
+              Fiscal Year: {activeYear?.year ?? 'Loading...'}
             </p>
           </div>
 
@@ -87,6 +121,7 @@ export default function PlantillaPage() {
                 <th className="p-3">Remarks</th>
               </tr>
             </thead>
+
             <tbody>
               {loading ? (
                 <tr>
@@ -97,7 +132,7 @@ export default function PlantillaPage() {
               ) : data.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-center p-6 text-gray-400">
-                    No plantilla records yet.
+                    No plantilla records for active fiscal year.
                   </td>
                 </tr>
               ) : (
@@ -122,7 +157,7 @@ export default function PlantillaPage() {
                       {item.periodCovered}
                     </td>
                     <td className="p-3">
-                      {item.remarks}
+                      {item.remarks || '-'}
                     </td>
                   </tr>
                 ))
