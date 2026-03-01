@@ -20,15 +20,41 @@ interface Plantilla {
   remarks?: string;
 }
 
+interface FiscalYear {
+  id: number;
+  year: number;
+  isActive: boolean;
+}
+
 export default function PlantillaPage() {
   const [isOpen, setIsOpen] = useState(false);
   const [data, setData] = useState<Plantilla[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeFiscal, setActiveFiscal] = useState<FiscalYear | null>(null);
 
   /* ================= FETCH DATA ================= */
   const fetchPlantilla = async () => {
     try {
-      const res = await api.get('/sk-plantilla');
+      setLoading(true);
+
+      // 1️⃣ Get active fiscal year
+      const fiscalRes = await api.get('/fiscal-years');
+      const active = fiscalRes.data?.data?.find(
+        (f: FiscalYear) => f.isActive
+      );
+
+      if (!active) {
+        console.error('No active fiscal year found');
+        return;
+      }
+
+      setActiveFiscal(active);
+
+      // 2️⃣ Fetch plantilla by fiscal year
+      const res = await api.get(
+        `/sk-plantilla/fiscal/${active.id}`
+      );
+
       setData(res.data.data);
     } catch (error) {
       console.error('Failed to fetch plantilla:', error);
@@ -45,7 +71,7 @@ export default function PlantillaPage() {
   const handleCreate = async (newPlantilla: any) => {
     try {
       await api.post('/sk-plantilla', newPlantilla);
-      fetchPlantilla(); // reload from DB
+      fetchPlantilla(); // reload after create
     } catch (error) {
       console.error('Create failed:', error);
     }
@@ -62,7 +88,7 @@ export default function PlantillaPage() {
               Plantilla of SK Officials
             </h1>
             <p className="text-sm text-gray-500">
-              Fiscal Year: 2026
+              Fiscal Year: {activeFiscal?.year ?? '—'}
             </p>
           </div>
 
