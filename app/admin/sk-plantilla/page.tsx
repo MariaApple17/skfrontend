@@ -61,9 +61,7 @@ export default function PlantillaPage() {
             <h1 className="text-xl font-semibold">
               Plantilla of SK Officials
             </h1>
-            <p className="text-sm text-gray-500">
-              Fiscal Year: 2026
-            </p>
+           
           </div>
 
           <button
