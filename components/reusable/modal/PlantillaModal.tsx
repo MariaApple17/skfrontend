@@ -26,12 +26,14 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: any) => void;
+  selectedFiscalYearId: number | null; 
 }
 
 export default function PlantillaModal({
   isOpen,
   onClose,
   onSubmit,
+  selectedFiscalYearId, 
 }: Props) {
   const [officials, setOfficials] = useState<Official[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
@@ -58,71 +60,71 @@ export default function PlantillaModal({
   const budgetRef = useRef<HTMLDivElement>(null);
 
   /* ================= LOAD DATA ================= */
-  useEffect(() => {
-    if (!isOpen) return;
+ useEffect(() => {
+  if (!isOpen) return;
 
-    async function loadData() {
-      try {
-        setLoading(true);
+if (!selectedFiscalYearId) {
+  setOfficials([]);
+  setBudgets([]);
+  return;
+}
+  async function loadData() {
+    try {
+      setLoading(true);
 
-        // 🔹 Get active fiscal year
-        const fiscalRes = await api.get('/fiscal-years');
-        const activeFiscal = fiscalRes.data?.data?.find(
-          (f: any) => f.isActive
-        );
+      // 🔹 Officials filtered by fiscal year
+      const officialsRes = await api.get(
+        `/sk-officials/fiscal/${selectedFiscalYearId}`
+      );
 
-        if (!activeFiscal) return;
+      // 🔹 Budget allocations filtered by fiscal year
+      const budgetRes = await api.get('/budget-allocations', {
+        params: {
+          fiscalYearId: selectedFiscalYearId,
+          limit: 1000,
+        },
+      });
 
-        // 🔹 Get SK Officials
-        const officialsRes = await api.get(
-          `/sk-officials/fiscal/${activeFiscal.id}`
-        );
+      const allocations = budgetRes.data?.data || [];
 
-        // 🔹 Get Budget Allocations (PAGINATED STRUCTURE)
-        const budgetRes = await api.get('/budget-allocations');
+      const personalServices = allocations
+        .filter(
+          (b: any) =>
+            b?.classification?.name
+              ?.toLowerCase()
+              .includes('personal') &&
+            b?.category === 'ADMINISTRATIVE'
+        )
+        .map((b: any) => ({
+          id: b.id,
+          code: b.object?.code || '',
+          program: b.program?.name || '',
+          classification: b.classification
+            ? {
+                id: b.classification.id,
+                name: b.classification.name,
+              }
+            : null,
+          object: `${b.object?.code || ''} — ${
+            b.object?.name || ''
+          }`,
+          remainingAmount:
+            Number(b.allocatedAmount || 0) -
+            Number(b.usedAmount || 0),
+        }));
 
-        // Backend returns:
-        // { data: [...], pagination: {...} }
-        const allocations = budgetRes.data?.data || [];
+      setOfficials(officialsRes.data?.data || []);
+      setBudgets(personalServices);
 
-        // 🔥 FILTER: ADMINISTRATIVE + Personal Services
-        const personalServices = allocations
-  .filter(
-    (b: any) =>
-      b?.classification?.name
-        ?.toLowerCase()
-        .includes('personal') &&
-      b?.category === 'ADMINISTRATIVE'
-  )
-          .map((b: any) => ({
-            id: b.id,
-            code: b.object?.code || '',
-            program: b.program?.name || '',
-            classification: b.classification
-              ? {
-                  id: b.classification.id,
-                  name: b.classification.name,
-                }
-              : null,
-            object: `${b.object?.code || ''} — ${
-              b.object?.name || ''
-            }`,
-            remainingAmount:
-              Number(b.allocatedAmount || 0) -
-              Number(b.usedAmount || 0),
-          }));
-
-        setOfficials(officialsRes.data?.data || []);
-        setBudgets(personalServices);
-      } catch (error) {
-        console.error('Load error:', error);
-      } finally {
-        setLoading(false);
-      }
+    } catch (error) {
+      console.error('Load error:', error);
+    } finally {
+      setLoading(false);
     }
+  }
 
-    loadData();
-  }, [isOpen]);
+  loadData();
+}, [isOpen, selectedFiscalYearId]);
 
   /* ================= CLOSE DROPDOWN OUTSIDE ================= */
   useEffect(() => {
@@ -402,11 +404,13 @@ export default function PlantillaModal({
           </button>
 
           <button
-            onClick={handleSubmit}
-            className="px-7 py-2.5 rounded-xl bg-blue-600 text-white"
-          >
-            Create
-          </button>
+  onClick={handleSubmit}
+  disabled={!selectedOfficial || !selectedBudget || !form.amount}
+  className="px-7 py-2.5 rounded-xl bg-blue-600 text-white disabled:opacity-50"
+>
+  Create
+</button>
+           
         </div>
       </div>
     </div>

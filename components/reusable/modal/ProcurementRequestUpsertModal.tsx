@@ -35,6 +35,8 @@ interface Props {
   onClose: () => void;
   onSuccess: () => void;
   requestId?: number | null;
+    selectedFiscalYearId: number | null; // ✅ ADD THIS
+
 }
 
 const EMPTY_ITEM: Item = {
@@ -49,6 +51,7 @@ export default function ProcurementRequestUpsertModal({
   onClose,
   onSuccess,
   requestId,
+  selectedFiscalYearId,
 }: Props) {
   const isEdit = Boolean(requestId);
 
@@ -86,31 +89,36 @@ export default function ProcurementRequestUpsertModal({
     setItems([{ ...EMPTY_ITEM }]);
   };
 
-  /* ================= LOAD ALLOCATIONS ================= */
+/* ================= LOAD ALLOCATIONS ================= */
+useEffect(() => {
+  if (!open || isEdit || !selectedFiscalYearId) return;
 
-  useEffect(() => {
-    if (!open || isEdit) return;
+  api.get('/budget-allocations', {
+    params: {
+      fiscalYearId: selectedFiscalYearId,
+      limit: 1000,
+    },
+  })
+  .then(res => {
+    if (!res.data?.success) return;
 
-    api.get('/budget-allocations')
-      .then(res => {
-        if (!res.data?.success) return;
-        
-const data = (res.data.data ?? []).map((a: any) => ({
-  id: Number(a.id),
-  allocated: Number(a.allocatedAmount ?? 0),
-  used: Number(a.usedAmount ?? 0),
-  label: `${a?.program?.code ?? 'N/A'} – ${a?.program?.name ?? 'Unknown'} • ${a?.classification?.name ?? 'Unknown'} • ${a?.object?.name ?? 'Unknown'}`,
-}));
+    const data = (res.data.data ?? []).map((a: any) => ({
+      id: Number(a.id),
+      allocated: Number(a.allocatedAmount ?? 0),
+      used: Number(a.usedAmount ?? 0),
+      label: `${a?.program?.code ?? 'ADMIN'} – ${a?.program?.name ?? 'Administrative'} • ${a?.classification?.name ?? 'Unknown'} • ${a?.object?.name ?? 'Unknown'}`,
+    }));
 
-        setAllocations(data);
-      })
-      .catch(() => {
-        setAlert({
-          type: 'error',
-          message: 'Failed to load budget allocations',
-        });
-      });
-  }, [open, isEdit]);
+    setAllocations(data);
+  })
+  .catch(() => {
+    setAlert({
+      type: 'error',
+      message: 'Failed to load budget allocations',
+    });
+  });
+
+}, [open, isEdit, selectedFiscalYearId]);
 
   /* ================= LOAD DRAFT ================= */
 

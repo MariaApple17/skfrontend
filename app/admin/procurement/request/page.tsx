@@ -98,11 +98,27 @@ function ProcurementRequestContent() {
   const [submitId, setSubmitId] = useState<number | null>(null);
   const [alertType, setAlertType] =
     useState<'delete' | 'submit' | null>(null);
+    const [selectedFiscalYearId, setSelectedFiscalYearId] = useState<number | null>(null);
+const [fiscalYears, setFiscalYears] = useState<any[]>([]);
 
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const limit = 9;
 
+
+  useEffect(() => {
+  api.get('/fiscal-years').then(res => {
+    if (res.data?.success) {
+      setFiscalYears(res.data.data);
+
+      // default to active year
+      const active = res.data.data.find((y: any) => y.isActive);
+      if (active) {
+        setSelectedFiscalYearId(active.id);
+      }
+    }
+  });
+}, []);
   /* ================= FETCH ================= */
   const fetchRequests = async () => {
     setLoading(true);
@@ -113,6 +129,7 @@ function ProcurementRequestContent() {
           status: 'DRAFT',
           page,
           limit,
+          fiscalYearId: selectedFiscalYearId,
         },
       });
       setItems(res.data?.data ?? []);
@@ -120,10 +137,10 @@ function ProcurementRequestContent() {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchRequests();
-  }, [search, page]);
+useEffect(() => {
+  if (!selectedFiscalYearId) return;
+  fetchRequests();
+}, [search, page, selectedFiscalYearId]);
 
   /* ================= ACTIONS ================= */
   const confirmDelete = async () => {
@@ -500,17 +517,18 @@ function ProcurementRequestContent() {
       )}
 
       {/* ================= MODALS ================= */}
-      <ProcurementRequestUpsertModal
-        open={modalOpen}
-        requestId={editId}
-        onClose={() => {
-          setModalOpen(false);
-          setEditId(null);
-        }}
-        onSuccess={fetchRequests}
-      />
+<ProcurementRequestUpsertModal
+  open={modalOpen}
+  requestId={editId}
+  selectedFiscalYearId={selectedFiscalYearId}
+  onClose={() => {
+    setModalOpen(false);
+    setEditId(null);
+  }}
+  onSuccess={fetchRequests}
+/>
 
-      <AlertModal
+<AlertModal
         open={alertType === 'delete'}
         type="warning"
         title="Delete Draft Request"
