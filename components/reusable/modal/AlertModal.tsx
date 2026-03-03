@@ -1,8 +1,6 @@
-import React, {
-  useEffect,
-  useState,
-} from 'react';
+'use client';
 
+import React, { useEffect, useState } from 'react';
 import {
   AlertTriangle,
   CheckCircle,
@@ -34,7 +32,7 @@ const THEME_CONFIG = {
   success: {
     icon: CheckCircle,
     gradient: 'from-emerald-500 to-green-600',
-    glow: 'shadow-emerald-500/50',
+    glow: 'shadow-emerald-500/40',
     lightBg: 'bg-emerald-50',
     ring: 'ring-emerald-200',
     iconBg: 'bg-gradient-to-br from-emerald-500 to-green-600',
@@ -42,7 +40,7 @@ const THEME_CONFIG = {
   error: {
     icon: XCircle,
     gradient: 'from-rose-500 to-red-600',
-    glow: 'shadow-rose-500/50',
+    glow: 'shadow-rose-500/40',
     lightBg: 'bg-rose-50',
     ring: 'ring-rose-200',
     iconBg: 'bg-gradient-to-br from-rose-500 to-red-600',
@@ -50,7 +48,7 @@ const THEME_CONFIG = {
   warning: {
     icon: AlertTriangle,
     gradient: 'from-orange-500 to-amber-600',
-    glow: 'shadow-orange-500/50',
+    glow: 'shadow-orange-500/40',
     lightBg: 'bg-orange-50',
     ring: 'ring-orange-200',
     iconBg: 'bg-gradient-to-br from-orange-500 to-amber-600',
@@ -58,7 +56,7 @@ const THEME_CONFIG = {
   info: {
     icon: Info,
     gradient: 'from-sky-500 to-blue-600',
-    glow: 'shadow-sky-500/50',
+    glow: 'shadow-sky-500/40',
     lightBg: 'bg-sky-50',
     ring: 'ring-sky-200',
     iconBg: 'bg-gradient-to-br from-sky-500 to-blue-600',
@@ -69,7 +67,7 @@ const THEME_CONFIG = {
    LOADING SPINNER
 ================================ */
 const Spinner = () => (
-  <div className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+  <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" />
 );
 
 /* ===============================
@@ -80,7 +78,7 @@ const AlertModal: React.FC<AlertModalProps> = ({
   title,
   message,
   type = 'info',
-  confirmText = 'Confirm',
+  confirmText = 'OK',
   cancelText = 'Cancel',
   showCancel = false,
   loading = false,
@@ -135,9 +133,8 @@ const AlertModal: React.FC<AlertModalProps> = ({
       onClick={handleBackdropClick}
       className={`
         fixed inset-0 z-50 flex items-center justify-center p-4
-        bg-slate-950/90
-        backdrop-blur-md
-        transition-opacity duration-250
+        bg-slate-950/80 backdrop-blur-md
+        transition-opacity duration-200
         ${animating ? 'opacity-100' : 'opacity-0'}
       `}
     >
@@ -145,10 +142,12 @@ const AlertModal: React.FC<AlertModalProps> = ({
         className={`
           relative w-full max-w-sm
           bg-white rounded-3xl
-          shadow-2xl shadow-black/50
+          shadow-2xl shadow-black/40
           overflow-hidden
           transform transition-all duration-300 ease-out
-          ${animating ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-90 translate-y-8'}
+          ${animating
+            ? 'opacity-100 scale-100 translate-y-0'
+            : 'opacity-0 scale-95 translate-y-6'}
         `}
       >
         {/* TOP BAR */}
@@ -162,7 +161,7 @@ const AlertModal: React.FC<AlertModalProps> = ({
                 {loading ? (
                   <Spinner />
                 ) : (
-                  <Icon className="w-10 h-10 text-white" strokeWidth={2.5} />
+                  <Icon className="w-9 h-9 text-white" strokeWidth={2.5} />
                 )}
               </div>
             </div>
@@ -170,7 +169,11 @@ const AlertModal: React.FC<AlertModalProps> = ({
 
           {/* TEXT */}
           <div className="text-center space-y-3 mb-6">
-            {title && <h3 className="text-2xl font-bold text-slate-900">{title}</h3>}
+            {title && (
+              <h3 className="text-xl font-bold text-slate-900">
+                {title}
+              </h3>
+            )}
             <p className="text-slate-600 text-base">
               {loading ? 'Processing your request…' : message}
             </p>
@@ -179,16 +182,16 @@ const AlertModal: React.FC<AlertModalProps> = ({
           {children && <div className="mb-6">{children}</div>}
 
           {/* ACTIONS */}
-          <div className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-3">
             <button
-              onClick={onConfirm}
+              onClick={onConfirm ?? onClose}
               disabled={loading || confirmDisabled}
               className={`
-                w-full py-3.5 rounded-xl font-semibold text-white
+                w-full py-3 rounded-xl font-semibold text-white
                 bg-gradient-to-r ${theme.gradient}
                 shadow-lg ${theme.glow}
                 hover:shadow-xl
-                active:scale-98
+                active:scale-95
                 disabled:opacity-60 disabled:cursor-not-allowed
                 transition-all duration-200
               `}
@@ -201,10 +204,10 @@ const AlertModal: React.FC<AlertModalProps> = ({
                 onClick={onClose}
                 disabled={loading}
                 className="
-                  w-full py-3.5 rounded-xl font-medium
+                  w-full py-3 rounded-xl font-medium
                   bg-slate-100 text-slate-700
                   hover:bg-slate-200
-                  active:scale-98
+                  active:scale-95
                   disabled:opacity-60 disabled:cursor-not-allowed
                   transition-all duration-200
                 "

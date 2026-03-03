@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import PlantillaModal from '@/components/reusable/modal/PlantillaModal';
+import AlertModal from '@/components/reusable/modal/AlertModal';
 import api from '@/components/lib/api';
+
 
 /* ================= TYPES ================= */
 
@@ -38,7 +40,9 @@ export default function PlantillaPage() {
   const [fiscalYears, setFiscalYears] = useState<FiscalYear[]>([]);
   const [selectedFiscalYearId, setSelectedFiscalYearId] =
     useState<number | null>(null);
-
+    const [alertOpen, setAlertOpen] = useState(false);
+const [alertMessage, setAlertMessage] = useState('');
+const [alertType, setAlertType] = useState<'success' | 'error' | 'warning' | 'info'>('error');
   /* ================= LOAD FISCAL YEARS ================= */
 
   useEffect(() => {
@@ -88,9 +92,14 @@ export default function PlantillaPage() {
   }, [selectedFiscalYearId]);
 
   /* ================= HANDLE CREATE ================= */
+  
 
   const handleCreate = async (newPlantilla: any) => {
     try {
+      console.log("DATA BEING SENT:", {
+  ...newPlantilla,
+  fiscalYearId: selectedFiscalYearId,
+});
       await api.post('/sk-plantilla', {
         ...newPlantilla,
         fiscalYearId: selectedFiscalYearId, // 🔥 REQUIRED
@@ -99,9 +108,20 @@ export default function PlantillaPage() {
       if (selectedFiscalYearId) {
         fetchPlantilla(selectedFiscalYearId);
       }
-    } catch (error) {
-      console.error('Create failed:', error);
-    }
+    } 
+    catch (error: any) {
+  const message =
+    error.response?.data?.message ||
+    "Something went wrong.";
+
+  setAlertMessage(message);
+  setAlertType(
+    message.includes("Insufficient")
+      ? "warning"
+      : "error"
+  );
+  setAlertOpen(true);
+}
   };
 
   /* ================= UI ================= */
@@ -199,6 +219,13 @@ export default function PlantillaPage() {
         onClose={() => setIsOpen(false)}
         onSubmit={handleCreate}
       />
+      <AlertModal
+  open={alertOpen}
+  title="Action Not Allowed"
+  message={alertMessage}
+  type={alertType}
+  onClose={() => setAlertOpen(false)}
+/>
     </div>
   );
 }
