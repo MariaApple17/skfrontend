@@ -231,24 +231,32 @@ Fiscal Year {profile?.fiscalYear?.year ?? ''}
             </tbody>
           </table>
 
-          {/* SIGNATORIES */}
-          <div className="mt-20 grid grid-cols-3 text-center text-sm">
-            <div>
-              <p>Prepared By:</p>
-              <div className="mt-14 border-t border-black w-40 mx-auto" />
-              <p>{getOfficial('SK Treasurer') ?? 'SK Treasurer'}</p>
+           {/* SIGNATORIES */}
+            <div className="mt-20 grid grid-cols-3 text-center text-sm">
+              <div>
+                <p>Prepared By:</p>
+                <p className="mt-12 font-bold underline">
+                  {getOfficial('SK Treasurer') || '_________________'}
+                </p>
+                <p>SK Treasurer</p>
+              </div>
+
+              <div>
+                <p>Noted By:</p>
+                <p className="mt-12 font-bold underline">
+                  {getOfficial('SK Secretary') || '_________________'}
+                </p>
+                <p>SK Secretary</p>
+              </div>
+
+              <div>
+                <p>Approved By:</p>
+                <p className="mt-12 font-bold underline">
+                  {getOfficial('SK Chairperson') || '_________________'}
+                </p>
+                <p>SK Chairperson</p>
+              </div>
             </div>
-            <div>
-              <p>Noted By:</p>
-              <div className="mt-14 border-t border-black w-40 mx-auto" />
-              <p>{getOfficial('SK Secretary') ?? 'SK Secretary'}</p>
-            </div>
-            <div>
-              <p>Approved By:</p>
-              <div className="mt-14 border-t border-black w-40 mx-auto" />
-              <p>{getOfficial('SK Chairperson') ?? 'SK Chairperson'}</p>
-            </div>
-          </div>
         </div>
       </div>
 
