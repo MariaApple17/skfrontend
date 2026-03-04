@@ -245,13 +245,16 @@ function BudgetContent() {
               </div>
 
               {/* META */}
-              <div className="text-xs text-slate-600 mb-2">
-                Administrative: PHP{' '}
-                {formatAmount(String(budget.administrativeAmount ?? 0))}
-              </div>
-              <div className="text-xs text-slate-600 mb-2">
-                Youth: PHP {formatAmount(String(budget.youthAmount ?? 0))}
-              </div>
+              
+              <div className="text-xs text-slate-600 mb-1">
+  GAP ( Administrative): PHP{' '}
+  {formatAmount(String(budget.administrativeAmount ?? 0))}
+</div>
+
+<div className="text-xs text-slate-600 mb-2">
+  SKYDEP ( Youth): PHP{' '}
+  {formatAmount(String(budget.youthAmount ?? 0))}
+</div>
               <p className="text-xs text-slate-500">
                 Created:{' '}
                 {new Date(budget.createdAt).toLocaleDateString()}

@@ -115,7 +115,12 @@ const BudgetAllocationUpsertModal: React.FC<
   >([]);
   const [limitInfo, setLimitInfo] = useState<LimitInfo | null>(null);
   const [limitLoading, setLimitLoading] = useState(false);
+   const CATEGORY_OPTIONS: BudgetCategory[] = ['ADMINISTRATIVE', 'YOUTH'];
 
+const CATEGORY_LABELS: Record<BudgetCategory, string> = {
+  ADMINISTRATIVE: 'GAP',
+  YOUTH: 'SKYDEP',
+};
   const [showLimitForm, setShowLimitForm] = useState(false);
   const [newLimitBudgetId, setNewLimitBudgetId] = useState('');
   const [newLimitAmount, setNewLimitAmount] = useState('');
@@ -879,9 +884,9 @@ const getAvailableBudgetsForNewLimit = () => {
   value={form.limitId}   // ✅ FIXED
   options={classificationLimits.map((l) => ({
     id: String(l.id),    // classificationLimit.id
-    label: `FY ${l.budget.fiscalYear.year} - ${l.category ?? form.category} - Limit: PHP ${Number(
-      l.limitAmount
-    ).toLocaleString()}`,
+    label: `FY ${l.budget.fiscalYear.year} - ${
+  CATEGORY_LABELS[(l.category ?? form.category) as BudgetCategory]
+} - Limit: PHP ${Number(l.limitAmount).toLocaleString()}`
   }))}
   onChange={handleBudgetLimitChange}
 />

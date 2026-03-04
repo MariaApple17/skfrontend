@@ -33,7 +33,10 @@ function ClassificationContent() {
   const [categoryFilter, setCategoryFilter] = useState<
     '' | 'ADMINISTRATIVE' | 'YOUTH'
   >('');
-
+   const CATEGORY_LABELS: Record<'ADMINISTRATIVE' | 'YOUTH', string> = {
+  ADMINISTRATIVE: 'GAP',
+  YOUTH: 'SKYDEP',
+};
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [editId, setEditId] = useState<number | null>(null);
 
@@ -116,8 +119,8 @@ function ClassificationContent() {
           className="w-full rounded-xl bg-white border border-slate-200 px-3 py-2 text-sm"
         >
           <option value="">All Categories</option>
-          <option value="ADMINISTRATIVE">ADMINISTRATIVE</option>
-          <option value="YOUTH">YOUTH</option>
+          <option value="ADMINISTRATIVE">  GAP</option>
+          <option value="YOUTH">SKYDEP</option>
         </select>
       </div>
 
@@ -217,7 +220,7 @@ function ClassificationContent() {
                     key={category}
                     className="rounded-full bg-blue-50 text-blue-700 text-xs font-medium px-2 py-1"
                   >
-                    {category}
+                   {CATEGORY_LABELS[category]}
                   </span>
                 ))}
 

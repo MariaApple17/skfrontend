@@ -49,7 +49,10 @@ const ClassificationUpsertModal: React.FC<ClassificationUpsertModalProps> = ({
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [loading, setLoading] = useState(false);
-
+  const CATEGORY_LABELS: Record<'ADMINISTRATIVE' | 'YOUTH', string> = {
+  ADMINISTRATIVE: 'GAP',
+  YOUTH: 'SKYDEP',
+};
   const [alert, setAlert] = useState<{
     open: boolean;
     type: 'success' | 'error';
@@ -217,7 +220,7 @@ const ClassificationUpsertModal: React.FC<ClassificationUpsertModalProps> = ({
                 {(['ADMINISTRATIVE', 'YOUTH'] as BudgetCategory[]).map(
                   (category) => {
                     const checked = form.allowedCategories.includes(category);
-
+                   
                     return (
                       <label
                         key={category}
@@ -247,7 +250,7 @@ const ClassificationUpsertModal: React.FC<ClassificationUpsertModalProps> = ({
                             }));
                           }}
                         />
-                        <span>{category}</span>
+                         {CATEGORY_LABELS[category]}
                       </label>
                     );
                   }

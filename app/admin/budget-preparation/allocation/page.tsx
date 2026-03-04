@@ -57,6 +57,10 @@ function BudgetAllocationContent() {
   const [classificationId, setClassificationId] = useState<number | ''>('');
   const [objectId, setObjectId] = useState<number | ''>('');
   const [category, setCategory] = useState<'' | 'ADMINISTRATIVE' | 'YOUTH'>('');
+  const CATEGORY_LABELS: Record<'ADMINISTRATIVE' | 'YOUTH', string> = {
+  ADMINISTRATIVE: 'GAP',
+  YOUTH: 'SKYDEP',
+};
 
   /* FILTER OPTIONS */
   const [budgets, setBudgets] = useState<Option[]>([]);
@@ -271,8 +275,8 @@ function BudgetAllocationContent() {
           label="Category"
           value={category}
           options={[
-            { id: 'ADMINISTRATIVE', label: 'ADMINISTRATIVE' },
-            { id: 'YOUTH', label: 'YOUTH' },
+            { id: 'ADMINISTRATIVE', label: 'GAP' },
+            { id: 'YOUTH', label: 'SKYDEP' },
           ]}
           onChange={v => {
             setPage(1);
@@ -323,10 +327,10 @@ function BudgetAllocationContent() {
                     </div>
                     <div>
                       <h3 className="font-medium text-slate-700 leading-snug">
-  {alloc.program?.code ?? 'ADMIN'}
+  {alloc.program?.code ?? 'GAP'}
 </h3>
 <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
-  {alloc.program?.name ?? 'Administrative Allocation'}
+  {alloc.program?.name ?? 'General Administrative Program Allocation'}
 </p>
                     </div>
                   </div>
@@ -356,7 +360,15 @@ function BudgetAllocationContent() {
                 <div className="space-y-2 mb-4 pb-4 border-b border-slate-50">
                   <div className="text-sm text-slate-500">
                     <span className="text-slate-400 text-xs">Category:</span>{' '}
-                    <span className="text-slate-600">{alloc.category ?? 'N/A'}</span>
+                    <span
+  className={`px-2 py-1 rounded-full text-xs font-medium ${
+    alloc.category === 'ADMINISTRATIVE'
+      ? 'bg-blue-50 text-blue-700'
+      : 'bg-green-50 text-green-700'
+  }`}
+>
+  {alloc.category ? CATEGORY_LABELS[alloc.category] : 'N/A'}
+</span>
                   </div>
                   <div className="text-sm text-slate-500">
                     <span className="text-slate-400 text-xs">Classification:</span>{' '}
