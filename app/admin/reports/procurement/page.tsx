@@ -67,6 +67,7 @@ export default function ProcurementReportEditor() {
   const [profile, setProfile] = useState<SystemProfile | null>(null);
   const [officials, setOfficials] = useState<SKOfficial[]>([]);
   const [data, setData] = useState<ProcurementItem[]>([]);
+   const [fiscalYear, setFiscalYear] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   /* ================= LOAD ================= */
@@ -84,12 +85,13 @@ export default function ProcurementReportEditor() {
       if (!activeYear) return;
 
       const fiscalYearId = activeYear.id;
+      setFiscalYear(activeYear.year);   // ✅ FIX
 
       /* 2️⃣ Load system profile */
       const profileRes = await api.get('/system-profile');
       setProfile(profileRes.data?.data ?? null);
 
-      /* 3️⃣ Load officials for ACTIVE fiscal year */
+      /* 3️⃣ Load officials */
       const officialsRes = await api.get(
         `/sk-officials/fiscal/${fiscalYearId}`
       );
@@ -195,13 +197,13 @@ const grandTotal = useMemo(() => {
           <div className="text-center space-y-1">
             <p className="text-sm">REPUBLIC OF THE PHILIPPINES</p>
             <p className="text-sm">PROVINCE OF BOHOL</p>
-            <p className="font-bold text-lg">Municipality of Trinidad</p>
-<p className="font-bold text-lg">Barangay Bongbong</p>
-<p className="font-bold text-lg">Office of the Sangguniang Kabataan</p>
+            <p className="text-sm">Municipality of Trinidad</p>
+            <p className="text-sm">Barangay Bongbong</p>
+            <p className="text-sm">Office of the Sangguniang Kabataan</p>
             <p className="font-bold text-xl mt-4">PROCUREMENT REPORT</p>
-            <p className="text-sm">
-Fiscal Year {profile?.fiscalYear?.year ?? ''}
-            </p>
+                          <p className="text-sm">
+Fiscal Year : {fiscalYear}
+              </p>
           </div>
 
           {/* TABLE */}

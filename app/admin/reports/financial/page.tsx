@@ -52,7 +52,6 @@ const FinancialReportEditor = () => {
 
   const [month, setMonth] = useState('ALL');
   const [fiscalYear, setFiscalYear] = useState<number | null>(null);
-const [location, setLocation] = useState<string>('Bongbong, Trinidad, Bohol');
   const [officials, setOfficials] = useState<SKOfficial[]>([]);
   const [data, setData] = useState<BudgetRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -171,19 +170,17 @@ if (loading) {
           <div ref={editorRef}>
 
             {/* HEADER */}
-            <div className="text-center space-y-1">
-              <p className="text-sm">REPUBLIC OF THE PHILIPPINES</p>
-              <p className="text-sm">PROVINCE OF BOHOL</p>
-               <p className="font-bold text-lg">Municipality of Trinidad</p>
-               <p className="font-bold text-lg">Barangay Bongbong</p>
-                <p className="font-bold text-lg">Office of the Sangguniang Kabataan</p>
-              <p className="font-bold text-xl mt-4">
-                FINANCIAL STATUS REPORT
-              </p>
-              <p className="text-sm">
+           <div className="text-center space-y-1">
+            <p className="text-sm">REPUBLIC OF THE PHILIPPINES</p>
+            <p className="text-sm">PROVINCE OF BOHOL</p>
+            <p className="text-sm">Municipality of Trinidad</p>
+            <p className="text-sm">Barangay Bongbong</p>
+            <p className="text-sm">Office of the Sangguniang Kabataan</p>
+            <p className="font-bold text-xl mt-4">PROCUREMENT REPORT</p>
+                          <p className="text-sm">
 Fiscal Year : {fiscalYear}
               </p>
-            </div>
+          </div>
 
             {/* TABLE */}
             <table className="w-full mt-10 border border-gray-700 text-sm">
