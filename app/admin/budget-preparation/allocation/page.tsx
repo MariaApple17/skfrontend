@@ -336,24 +336,7 @@ function BudgetAllocationContent() {
                   </div>
 
                   <div className="flex gap-1">
-                    <button
-                      onClick={() => {
-                        setEditId(alloc.id);
-                        setModalOpen(true);
-                      }}
-                      className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"
-                    >
-                      <Pencil size={15} />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setDeleteId(alloc.id);
-                        setAlertOpen(true);
-                      }}
-                      className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                    >
-                      <Trash2 size={15} />
-                    </button>
+                    
                   </div>
                 </div>
 

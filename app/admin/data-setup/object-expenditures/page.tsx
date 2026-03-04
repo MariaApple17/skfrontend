@@ -213,21 +213,6 @@ function ObjectOfExpenditureContent() {
                   >
                     <Pencil size={16} />
                   </button>
-
-                  <button
-                    onClick={() => {
-                      setDeleteId(obj.id);
-                      setAlertOpen(true);
-                    }}
-                    className="
-                      p-2 rounded-lg
-                      text-red-600
-                      hover:bg-red-600/10
-                      transition
-                    "
-                  >
-                    <Trash2 size={16} />
-                  </button>
                 </div>
               </div>
 

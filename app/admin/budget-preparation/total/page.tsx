@@ -212,35 +212,9 @@ function BudgetContent() {
 
                 {/* ACTIONS */}
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setEditId(budget.id);
-                      setModalOpen(true);
-                    }}
-                    className="
-                      p-2 rounded-lg
-                      text-blue-900
-                      hover:bg-blue-900/10
-                      transition
-                    "
-                  >
-                    <Pencil size={16} />
-                  </button>
+                  
 
-                  <button
-                    onClick={() => {
-                      setDeleteId(budget.id);
-                      setAlertOpen(true);
-                    }}
-                    className="
-                      p-2 rounded-lg
-                      text-red-600
-                      hover:bg-red-600/10
-                      transition
-                    "
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                 
                 </div>
               </div>
 

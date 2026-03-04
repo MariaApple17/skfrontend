@@ -354,21 +354,7 @@ function SKOfficialsContent() {
           <Pencil size={16} />
         </button>
 
-        <button
-          onClick={() => {
-            setDeleteId(o.id);
-            setConfirmOpen(true);
-          }}
-          className="
-            p-2 rounded-xl
-            text-red-600
-            hover:bg-red-100
-            transition
-          "
-          title="Delete"
-        >
-          <Trash2 size={16} />
-        </button>
+        
       </div>
     </div>
   </div>

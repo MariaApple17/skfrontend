@@ -180,12 +180,10 @@ export default function SystemProfilePage() {
               <h1 className="text-2xl font-semibold text-gray-900">
                 {profile.systemName}
               </h1>
-
+                <div className="mt-1 flex items-center gap-4 text-sm text-gray-500">
+                {profile.systemDescription}
+              </div>
               <div className="mt-1 flex items-center gap-4 text-sm text-gray-500">
-                <span className="flex items-center gap-1">
-                  Global System Profile
-                </span>
-
                 {profile.location && (
                   <span className="flex items-center gap-1">
                     <MapPin size={14} />
