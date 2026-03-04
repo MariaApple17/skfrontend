@@ -36,6 +36,10 @@ interface SKOfficial {
   position: string;
   fullName: string;
   isActive: boolean;
+   fiscalYear: {
+    id: number;
+    year: number;
+  };
 }
 
 /* ================= OPTIONS ================= */
@@ -58,7 +62,7 @@ const MONTH_OPTIONS = [
 ];
 
 export default function ProcurementReportEditor() {
-  const [status, setStatus] = useState('APPROVED');
+  const [status, setStatus] = useState('ALL');
   const [month, setMonth] = useState('ALL');
   const [profile, setProfile] = useState<SystemProfile | null>(null);
   const [officials, setOfficials] = useState<SKOfficial[]>([]);
@@ -68,37 +72,57 @@ export default function ProcurementReportEditor() {
   /* ================= LOAD ================= */
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const profileRes = await api.get('/system-profile');
-        setProfile(profileRes.data.data);
+  const load = async () => {
+    try {
+      setLoading(true);
 
-        const officialsRes = await api.get(
-          `/sk-officials/fiscal/${profileRes.data.data.fiscalYearId}`
-        );
-        setOfficials(officialsRes.data.data ?? []);
+      /* 1️⃣ Get active fiscal year */
+      const fyRes = await api.get('/fiscal-years');
+      const years = fyRes.data?.data ?? [];
+      const activeYear = years.find((y: any) => y.isActive);
 
-        const procurementRes = await api.get('/procurement', {
-          params: {
-            status: status === 'ALL' ? undefined : status,
-            limit: 999,
-          },
-        });
+      if (!activeYear) return;
 
-        setData(procurementRes.data.data ?? []);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    };
+      const fiscalYearId = activeYear.id;
 
-    load();
-  }, [status]);
+      /* 2️⃣ Load system profile */
+      const profileRes = await api.get('/system-profile');
+      setProfile(profileRes.data?.data ?? null);
 
-  const getOfficial = (pos: string) =>
-    officials.find(o => o.position === pos && o.isActive)?.fullName;
+      /* 3️⃣ Load officials for ACTIVE fiscal year */
+      const officialsRes = await api.get(
+        `/sk-officials/fiscal/${fiscalYearId}`
+      );
 
+      setOfficials(officialsRes.data?.data ?? []);
+
+      /* 4️⃣ Load procurement */
+      const procurementRes = await api.get('/procurement', {
+        params: {
+          status: status === 'ALL' ? undefined : status,
+          limit: 999,
+        },
+      });
+
+      setData(procurementRes.data?.data ?? []);
+
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  load();
+}, [status]);
+
+
+const getOfficial = (position: string) =>
+  officials.find(
+    o =>
+      o.isActive &&
+      o.position?.toLowerCase().includes(position.toLowerCase())
+  )?.fullName;
   /* ================= FILTER ================= */
 
   const filteredData = useMemo(() => {
@@ -114,7 +138,7 @@ export default function ProcurementReportEditor() {
     let counter = 0;
 
     return filteredData.flatMap(p =>
-      p.items.map(item => {
+  (p.items ?? []).map(item =>  {
         counter++;
         return {
           key: `${p.id}-${item.id}`,
@@ -131,10 +155,9 @@ export default function ProcurementReportEditor() {
       })
     );
   }, [filteredData]);
-
-  const grandTotal = useMemo(() => {
-    return tableRows.reduce((sum, row) => sum + row.totalPrice, 0);
-  }, [tableRows]);
+const grandTotal = useMemo(() => {
+  return tableRows.reduce((sum, row) => sum + Number(row.totalPrice || 0), 0);
+}, [tableRows]);
 
   if (loading) return <p className="py-20 text-center">Loading…</p>;
 
@@ -172,7 +195,9 @@ export default function ProcurementReportEditor() {
           <div className="text-center space-y-1">
             <p className="text-sm">REPUBLIC OF THE PHILIPPINES</p>
             <p className="text-sm">PROVINCE OF BOHOL</p>
-            <p className="font-bold text-lg">{profile?.location}</p>
+            <p className="font-bold text-lg">Municipality of Trinidad</p>
+<p className="font-bold text-lg">Barangay Bongbong</p>
+<p className="font-bold text-lg">Office of the Sangguniang Kabataan</p>
             <p className="font-bold text-xl mt-4">PROCUREMENT REPORT</p>
             <p className="text-sm">
 Fiscal Year {profile?.fiscalYear?.year ?? ''}
@@ -212,10 +237,10 @@ Fiscal Year {profile?.fiscalYear?.year ?? ''}
                   <td className="border p-2">{row.quantity}</td>
                   <td className="border p-2">{row.unit}</td>
                   <td className="border p-2 text-right">
-                    ₱{row.unitCost.toLocaleString()}
+                    ₱{Number(row.unitCost || 0).toLocaleString()}
                   </td>
                   <td className="border p-2 text-right">
-                    ₱{row.totalPrice.toLocaleString()}
+                    ₱{Number(row.totalPrice || 0).toLocaleString()}
                   </td>
                 </tr>
               ))}

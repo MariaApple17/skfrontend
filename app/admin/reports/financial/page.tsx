@@ -25,17 +25,25 @@ interface BudgetRow {
   classification: { name: string };
   object: { name: string };
 }
-
 interface SystemProfile {
   location: string;
-  fiscalYear: { year: number };
+  fiscalYearId: number;
+  fiscalYear: {
+    id: number;
+    year: number;
+  };
 }
 
 interface SKOfficial {
   position: string;
   fullName: string;
   isActive: boolean;
+   fiscalYear: {
+    id: number;
+    year: number;
+  };
 }
+
 
 /* ===================================================== */
 
@@ -43,49 +51,61 @@ const FinancialReportEditor = () => {
   const editorRef = useRef<HTMLDivElement>(null);
 
   const [month, setMonth] = useState('ALL');
-  const [profile, setProfile] = useState<SystemProfile | null>(null);
+  const [fiscalYear, setFiscalYear] = useState<number | null>(null);
+const [location, setLocation] = useState<string>('Bongbong, Trinidad, Bohol');
   const [officials, setOfficials] = useState<SKOfficial[]>([]);
   const [data, setData] = useState<BudgetRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   /* ================= LOAD ================= */
+useEffect(() => {
+  const load = async () => {
+    try {
+      setLoading(true);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true);
+      /* 1️⃣ Get active fiscal year */
+      const fyRes = await api.get('/fiscal-years');
+      const years = fyRes.data?.data ?? [];
+      const activeYear = years.find((y: any) => y.isActive);
 
-        // 🔥 Always get active fiscal year from backend
-        const profileRes = await api.get('/system-profile');
-        setProfile(profileRes.data.data);
-
-        // 🔥 Backend already filters by ACTIVE fiscal year
-        const officialsRes = await api.get('/sk-officials');
-        setOfficials(officialsRes.data.data ?? []);
-
-        // 🔥 Report also locked to active fiscal year
-        const res = await api.get('/reports/budget-summary', {
-          params: { limit: 999 },
-        });
-
-        setData(res.data.data ?? []);
-      } catch (error) {
-        console.error('Financial Report Load Error:', error);
-      } finally {
-        setLoading(false);
+      if (!activeYear) {
+        console.error('No active fiscal year found');
+        return;
       }
-    };
 
-    load();
-  }, []);
+      const fiscalYearId = activeYear.id;
+      setFiscalYear(activeYear.year);
 
+      /* 2️⃣ Load SK officials */
+      const officialsRes = await api.get(
+        `/sk-officials/fiscal/${fiscalYearId}`
+      );
+
+      setOfficials(officialsRes.data?.data ?? []);
+
+      /* 3️⃣ Load report data */
+      const res = await api.get('/reports/budget-summary', {
+        params: { limit: 999 },
+      });
+
+      setData(res.data?.data ?? []);
+
+    } catch (error) {
+      console.error('Financial Report Load Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  load();
+}, []);
   /* ================= GET OFFICIAL ================= */
-
-  const getOfficial = (position: string) =>
-    officials.find(
-      o => o.position === position && o.isActive
-    )?.fullName;
-
+const getOfficial = (position: string) =>
+  officials.find(
+    o =>
+      o.isActive &&
+      o.position.toLowerCase().includes(position.toLowerCase())
+  )?.fullName;
   /* ================= COMPUTATIONS ================= */
 
   const computed = useMemo(() => {
@@ -122,11 +142,9 @@ const FinancialReportEditor = () => {
   const handlePrint = () => {
     window.print();
   };
-
-  if (loading || !profile) {
-    return <p className="py-20 text-center">Loading…</p>;
-  }
-
+if (loading) {
+  return <p className="py-20 text-center">Loading…</p>;
+}
   return (
     <div className="space-y-10">
 
@@ -156,12 +174,14 @@ const FinancialReportEditor = () => {
             <div className="text-center space-y-1">
               <p className="text-sm">REPUBLIC OF THE PHILIPPINES</p>
               <p className="text-sm">PROVINCE OF BOHOL</p>
-              <p className="font-bold text-lg">{profile.location}</p>
+               <p className="font-bold text-lg">Municipality of Trinidad</p>
+               <p className="font-bold text-lg">Barangay Bongbong</p>
+                <p className="font-bold text-lg">Office of the Sangguniang Kabataan</p>
               <p className="font-bold text-xl mt-4">
                 FINANCIAL STATUS REPORT
               </p>
               <p className="text-sm">
-                Fiscal Year {profile.fiscalYear?.year}
+Fiscal Year : {fiscalYear}
               </p>
             </div>
 

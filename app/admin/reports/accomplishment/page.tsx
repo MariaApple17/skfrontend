@@ -32,6 +32,15 @@ interface SystemProfile {
   location: string;
   fiscalYear: { year: number };
 }
+interface SKOfficial {
+  position: string;
+  fullName: string;
+  isActive: boolean;
+   fiscalYear: {
+    id: number;
+    year: number;
+  };
+}
 
 /* ================= STATUS ================= */
 
@@ -72,25 +81,64 @@ export default function AccomplishmentReportPage() {
   const editorRef = useRef<HTMLDivElement>(null);
 
   const [profile, setProfile] = useState<SystemProfile | null>(null);
+  const [officials, setOfficials] = useState<any[]>([]);
+  const [fiscalYear, setFiscalYear] = useState<number | null>(null);
   const [data, setData] = useState<Row[]>([]);
   const [month, setMonth] = useState('ALL');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const load = async () => {
+  const load = async () => {
+    try {
       setLoading(true);
 
+      /* 1️⃣ Get active fiscal year */
+      const fyRes = await api.get('/fiscal-years');
+      const years = fyRes.data?.data ?? [];
+      const activeYear = years.find((y: any) => y.isActive);
+
+      if (!activeYear) {
+        console.error('No active fiscal year found');
+        return;
+      }
+
+      const fiscalYearId = activeYear.id;
+      setFiscalYear(activeYear.year); // ✅ FIX
+
+      /* 2️⃣ Load system profile */
       const profileRes = await api.get('/system-profile');
-      setProfile(profileRes.data.data);
+      setProfile(profileRes.data?.data ?? null);
 
-      const res = await api.get('/reports/accomplishment');
-      setData(res.data.data ?? []);
+      /* 3️⃣ Load SK officials */
+      const officialsRes = await api.get(
+        `/sk-officials/fiscal/${fiscalYearId}`
+      );
 
+      setOfficials(officialsRes.data?.data ?? []);
+
+      /* 4️⃣ Load accomplishment report */
+      const res = await api.get('/reports/accomplishment', {
+        params: { limit: 999 },
+      });
+
+      setData(res.data?.data ?? []);
+
+    } catch (error) {
+      console.error('Accomplishment Report Load Error:', error);
+    } finally {
       setLoading(false);
-    };
+    }
+  };
 
-    load();
-  }, []);
+  load();
+}, []);
+
+const getOfficial = (position: string) =>
+  officials.find(
+    o =>
+      o.isActive &&
+      o.position.toLowerCase().includes(position.toLowerCase())
+  )?.fullName;
 
   const filtered = useMemo(() => {
     if (month === 'ALL') return data;
@@ -140,12 +188,14 @@ export default function AccomplishmentReportPage() {
             <div className="text-center space-y-1">
               <p className="text-sm">REPUBLIC OF THE PHILIPPINES</p>
               <p className="text-sm">PROVINCE OF BOHOL</p>
-              <p className="font-bold text-lg">{profile?.location}</p>
+              <p className="font-bold text-lg">Municipality of Trinidad</p>
+<p className="font-bold text-lg">Barangay Bongbong</p>
+<p className="font-bold text-lg">Office of the Sangguniang Kabataan</p>
               <p className="font-bold text-xl mt-4">
                 ACCOMPLISHMENT REPORT
               </p>
               <p className="text-sm">
-                Fiscal Year {profile?.fiscalYear?.year ?? ''}
+Fiscal Year : {fiscalYear}
               </p>
             </div>
 
@@ -227,12 +277,12 @@ export default function AccomplishmentReportPage() {
               </tbody>
             </table>
 
-            {/* SIGNATORIES */}
+             {/* SIGNATORIES */}
             <div className="mt-20 grid grid-cols-3 text-center text-sm">
               <div>
                 <p>Prepared By:</p>
                 <p className="mt-12 font-bold underline">
-                  _______________________
+                  {getOfficial('SK Treasurer') || '_________________'}
                 </p>
                 <p>SK Treasurer</p>
               </div>
@@ -240,7 +290,7 @@ export default function AccomplishmentReportPage() {
               <div>
                 <p>Noted By:</p>
                 <p className="mt-12 font-bold underline">
-                  _______________________
+                  {getOfficial('SK Secretary') || '_________________'}
                 </p>
                 <p>SK Secretary</p>
               </div>
@@ -248,7 +298,7 @@ export default function AccomplishmentReportPage() {
               <div>
                 <p>Approved By:</p>
                 <p className="mt-12 font-bold underline">
-                  _______________________
+                  {getOfficial('SK Chairperson') || '_________________'}
                 </p>
                 <p>SK Chairperson</p>
               </div>

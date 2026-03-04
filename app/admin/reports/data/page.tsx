@@ -91,21 +91,22 @@ const [viewMode, setViewMode] = useState<ViewMode>('table'); // default = TABLE
 
    const mapped: Row[] = res.data.data.map((r: any) => {
   switch (type) {
+
     /* ===================== BUDGET SUMMARY ===================== */
     case 'budget':
       return {
         AllocationID: r.id,
-        ProgramCode: r.program.code,
-        ProgramName: r.program.name,
-        ClassificationCode: r.classification.code,
-        ClassificationName: r.classification.name,
-        ObjectCode: r.object.code,
-        ObjectName: r.object.name,
-        FiscalYear: r.budget.fiscalYear.year,
-        AllocatedAmount: Number(r.allocatedAmount),
-        UsedAmount: Number(r.usedAmount),
+        ProgramCode: r.program?.code ?? '-',
+        ProgramName: r.program?.name ?? '-',
+        ClassificationCode: r.classification?.code ?? '-',
+        ClassificationName: r.classification?.name ?? '-',
+        ObjectCode: r.object?.code ?? '-',
+        ObjectName: r.object?.name ?? '-',
+        FiscalYear: r.budget?.fiscalYear?.year ?? '-',
+        AllocatedAmount: Number(r.allocatedAmount ?? 0),
+        UsedAmount: Number(r.usedAmount ?? 0),
         RemainingAmount:
-          Number(r.allocatedAmount) - Number(r.usedAmount),
+          Number(r.allocatedAmount ?? 0) - Number(r.usedAmount ?? 0),
         CreatedAt: new Date(r.createdAt).toLocaleString(),
         UpdatedAt: new Date(r.updatedAt).toLocaleString(),
       };
@@ -114,20 +115,20 @@ const [viewMode, setViewMode] = useState<ViewMode>('table'); // default = TABLE
     case 'procurement':
       return {
         RequestID: r.id,
-        Title: r.title,
-        Description: r.description,
-        Status: r.status,
-        TotalAmount: Number(r.amount),
+        Title: r.title ?? '-',
+        Description: r.description ?? '-',
+        Status: r.status ?? '-',
+        TotalAmount: Number(r.amount ?? 0),
         ItemCount: r.items?.length ?? 0,
         ItemsSummary: r.items
           ?.map(
             (i: any) =>
               `${i.name} (${i.quantity} × ${i.unitCost})`
           )
-          .join(', '),
-        Program: r.allocation.program.name,
-        Classification: r.allocation.classification.name,
-        CreatedBy: r.createdBy.fullName,
+          .join(', ') ?? '-',
+        Program: r.allocation?.program?.name ?? '-',
+        Classification: r.allocation?.classification?.name ?? '-',
+        CreatedBy: r.createdBy?.fullName ?? '-',
         CreatedAt: new Date(r.createdAt).toLocaleString(),
         UpdatedAt: new Date(r.updatedAt).toLocaleString(),
       };
@@ -136,13 +137,13 @@ const [viewMode, setViewMode] = useState<ViewMode>('table'); // default = TABLE
     case 'approvals':
       return {
         ApprovalID: r.id,
-        RequestID: r.request.id,
-        RequestTitle: r.request.title,
-        RequestStatus: r.request.status,
-        ApprovalStatus: r.status,
-        Amount: Number(r.request.amount),
-        ApproverName: r.approver.fullName,
-        ApproverEmail: r.approver.email,
+        RequestID: r.request?.id ?? '-',
+        RequestTitle: r.request?.title ?? '-',
+        RequestStatus: r.request?.status ?? '-',
+        ApprovalStatus: r.status ?? '-',
+        Amount: Number(r.request?.amount ?? 0),
+        ApproverName: r.approver?.fullName ?? '-',
+        ApproverEmail: r.approver?.email ?? '-',
         Remarks: r.remarks ?? '-',
         CreatedAt: new Date(r.createdAt).toLocaleString(),
       };
@@ -151,14 +152,16 @@ const [viewMode, setViewMode] = useState<ViewMode>('table'); // default = TABLE
     case 'program-utilization':
       return {
         ProgramID: r.programId,
-        ProgramName: r.programName,
-        AllocatedAmount: r.allocated,
-        UsedAmount: r.used,
-        RemainingAmount: r.remaining,
+        ProgramName: r.programName ?? '-',
+        AllocatedAmount: Number(r.allocated ?? 0),
+        UsedAmount: Number(r.used ?? 0),
+        RemainingAmount: Number(r.remaining ?? 0),
       };
+
+    default:
+      return {};
   }
 });
-
 
     setRows(mapped);
     setLoading(false);
