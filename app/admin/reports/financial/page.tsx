@@ -4,6 +4,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import api from '@/components/lib/api';
 import FlatSelect from '@/components/reusable/ui/FlatSelect';
 
+/* ================= MONTH OPTIONS ================= */
+
 const MONTH_OPTIONS = [
   { id: 'ALL', label: 'All Months' },
   ...Array.from({ length: 12 }, (_, i) => ({
@@ -13,6 +15,8 @@ const MONTH_OPTIONS = [
     }),
   })),
 ];
+
+/* ================= TYPES ================= */
 
 interface BudgetRow {
   id: number;
@@ -25,7 +29,6 @@ interface BudgetRow {
 interface SystemProfile {
   location: string;
   fiscalYear: { year: number };
-  fiscalYearId: number;
 }
 
 interface SKOfficial {
@@ -34,10 +37,12 @@ interface SKOfficial {
   isActive: boolean;
 }
 
+/* ===================================================== */
+
 const FinancialReportEditor = () => {
   const editorRef = useRef<HTMLDivElement>(null);
-  const [month, setMonth] = useState('ALL');
 
+  const [month, setMonth] = useState('ALL');
   const [profile, setProfile] = useState<SystemProfile | null>(null);
   const [officials, setOfficials] = useState<SKOfficial[]>([]);
   const [data, setData] = useState<BudgetRow[]>([]);
@@ -47,35 +52,45 @@ const FinancialReportEditor = () => {
 
   useEffect(() => {
     const load = async () => {
-      setLoading(true);
+      try {
+        setLoading(true);
 
-      const profileRes = await api.get('/system-profile');
-      setProfile(profileRes.data.data);
+        // 🔥 Always get active fiscal year from backend
+        const profileRes = await api.get('/system-profile');
+        setProfile(profileRes.data.data);
 
-      const officialsRes = await api.get(
-        `/sk-officials/fiscal/${profileRes.data.data.fiscalYearId}`
-      );
-      setOfficials(officialsRes.data.data ?? []);
+        // 🔥 Backend already filters by ACTIVE fiscal year
+        const officialsRes = await api.get('/sk-officials');
+        setOfficials(officialsRes.data.data ?? []);
 
-      const res = await api.get('/reports/budget-summary', {
-        params: { limit: 999 },
-      });
+        // 🔥 Report also locked to active fiscal year
+        const res = await api.get('/reports/budget-summary', {
+          params: { limit: 999 },
+        });
 
-      setData(res.data.data ?? []);
-      setLoading(false);
+        setData(res.data.data ?? []);
+      } catch (error) {
+        console.error('Financial Report Load Error:', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     load();
   }, []);
 
-  const getOfficial = (pos: string) =>
-    officials.find(o => o.position === pos && o.isActive)?.fullName;
+  /* ================= GET OFFICIAL ================= */
+
+  const getOfficial = (position: string) =>
+    officials.find(
+      o => o.position === position && o.isActive
+    )?.fullName;
 
   /* ================= COMPUTATIONS ================= */
 
   const computed = useMemo(() => {
     return data.map(d => {
-      const appropriation = Number(d.allocatedAmount);
+      const appropriation = Number(d.allocatedAmount || 0);
       const obligations = Number(d.usedAmount || 0);
       const balance = appropriation - obligations;
 
@@ -108,7 +123,9 @@ const FinancialReportEditor = () => {
     window.print();
   };
 
-  if (loading) return <p className="py-20 text-center">Loading…</p>;
+  if (loading || !profile) {
+    return <p className="py-20 text-center">Loading…</p>;
+  }
 
   return (
     <div className="space-y-10">
@@ -133,19 +150,18 @@ const FinancialReportEditor = () => {
       {/* REPORT AREA */}
       <div className="flex justify-center bg-gray-100 py-10">
         <div className="bg-white w-[1100px] p-12 shadow-xl print-area">
-
           <div ref={editorRef}>
 
             {/* HEADER */}
             <div className="text-center space-y-1">
               <p className="text-sm">REPUBLIC OF THE PHILIPPINES</p>
               <p className="text-sm">PROVINCE OF BOHOL</p>
-              <p className="font-bold text-lg">{profile?.location}</p>
+              <p className="font-bold text-lg">{profile.location}</p>
               <p className="font-bold text-xl mt-4">
                 FINANCIAL STATUS REPORT
               </p>
               <p className="text-sm">
-                Fiscal Year {profile?.fiscalYear.year}
+                Fiscal Year {profile.fiscalYear?.year}
               </p>
             </div>
 
@@ -237,7 +253,7 @@ const FinancialReportEditor = () => {
         </div>
       </div>
 
-      {/* PRINT STYLING */}
+      {/* PRINT STYLE */}
       <style jsx global>{`
         @media print {
           body * {
@@ -255,7 +271,6 @@ const FinancialReportEditor = () => {
           }
         }
       `}</style>
-
     </div>
   );
 };

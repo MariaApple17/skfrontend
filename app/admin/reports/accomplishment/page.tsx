@@ -145,7 +145,7 @@ export default function AccomplishmentReportPage() {
                 ACCOMPLISHMENT REPORT
               </p>
               <p className="text-sm">
-                Fiscal Year {profile?.fiscalYear.year}
+                Fiscal Year {profile?.fiscalYear?.year ?? ''}
               </p>
             </div>
 

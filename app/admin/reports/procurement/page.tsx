@@ -175,7 +175,7 @@ export default function ProcurementReportEditor() {
             <p className="font-bold text-lg">{profile?.location}</p>
             <p className="font-bold text-xl mt-4">PROCUREMENT REPORT</p>
             <p className="text-sm">
-              Fiscal Year {profile?.fiscalYear.year}
+Fiscal Year {profile?.fiscalYear?.year ?? ''}
             </p>
           </div>
 
