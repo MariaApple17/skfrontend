@@ -127,6 +127,7 @@ export default function ProgramUpsertModal({
         startDate: form.startDate,
         endDate: form.endDate,
         isActive: form.isActive,
+         status: "SUBMITTED", 
       };
 
       if (!isEdit) {

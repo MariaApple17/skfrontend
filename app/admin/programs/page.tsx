@@ -50,25 +50,68 @@ interface Program {
   startDate?: string;
   endDate?: string;
   isActive: boolean;
+
+  approvalStatus: 'pending' | 'approved' | 'rejected';
+
   documents: ProgramDocument[];
 }
 
-type ProgramStatus = 'upcoming' | 'ongoing' | 'completed' | 'no-dates';
 
 /* ================= DATE STATUS HELPER ================= */
-const getProgramStatus = (startDate?: string, endDate?: string): ProgramStatus => {
-  if (!startDate && !endDate) return 'no-dates';
-  
+type ProgramStatus =
+  | "pending"
+  | "rejected"
+  | "upcoming"
+  | "ongoing"
+  | "completed"
+  | "no-dates";
+
+const getProgramStatus = (
+  status?: string,
+  startDate?: string,
+  endDate?: string
+) => {
+
+  // DATABASE STATUS FIRST
+  if (status === "PENDING") return "pending";
+  if (status === "REJECTED") return "rejected";
+
   const now = new Date();
   const start = startDate ? new Date(startDate) : null;
   const end = endDate ? new Date(endDate) : null;
 
-  if (start && now < start) return 'upcoming';
-  if (end && now > end) return 'completed';
-  return 'ongoing';
+  if (start && now < start) return "upcoming";
+
+  if (start && end && now >= start && now <= end)
+    return "ongoing";
+
+  if (end && now > end)
+    return "completed";
+
+  return "no-dates";
 };
 
+
 const STATUS_CONFIG = {
+
+  pending: {
+    label: 'Pending Approval',
+    icon: Clock,
+    bg: 'bg-gradient-to-br from-orange-50 to-amber-50',
+    text: 'text-orange-700',
+    border: 'border-orange-200/60',
+    iconBg: 'bg-orange-100',
+  },
+
+  rejected: {
+    label: 'Rejected',
+    icon: Trash2,
+    bg: 'bg-gradient-to-br from-red-50 to-rose-50',
+    text: 'text-red-700',
+    border: 'border-red-200/60',
+    iconBg: 'bg-red-100',
+  },
+
   upcoming: {
     label: 'Upcoming',
     icon: Sparkles,
@@ -77,6 +120,7 @@ const STATUS_CONFIG = {
     border: 'border-purple-200/60',
     iconBg: 'bg-purple-100',
   },
+
   ongoing: {
     label: 'Ongoing',
     icon: Clock,
@@ -85,6 +129,7 @@ const STATUS_CONFIG = {
     border: 'border-emerald-200/60',
     iconBg: 'bg-emerald-100',
   },
+
   completed: {
     label: 'Completed',
     icon: Calendar,
@@ -93,6 +138,7 @@ const STATUS_CONFIG = {
     border: 'border-slate-200/60',
     iconBg: 'bg-slate-100',
   },
+
   'no-dates': {
     label: 'No Schedule',
     icon: Calendar,
@@ -101,6 +147,7 @@ const STATUS_CONFIG = {
     border: 'border-amber-200/60',
     iconBg: 'bg-amber-100',
   },
+
 } as const;
 
 /* ================= IMAGE CAROUSEL COMPONENT ================= */
@@ -322,6 +369,21 @@ function ProgramsContent() {
   useEffect(() => {
     fetchPrograms();
   }, [q, isActiveParam, startDateFrom, startDateTo]);
+  const approveProgram = async (id:number) => {
+
+await api.patch(`/programs/approve/${id}`)
+
+fetchPrograms()
+
+}
+
+const rejectProgram = async (id:number) => {
+
+await api.patch(`/programs/reject/${id}`)
+
+fetchPrograms()
+
+}
 
   /* ================= TOGGLE ================= */
   const toggleStatus = async (id: number) => {
@@ -515,8 +577,28 @@ function ProgramsContent() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-7">
           {programs.map((p) => {
-            const programStatus = getProgramStatus(p.startDate, p.endDate);
+          const programStatus = getProgramStatus(
+  p.approvalStatus,
+  p.startDate,
+  p.endDate
+);
+const approveProgram = async (id: number) => {
+  try {
+    await api.patch(`/programs/approve/${id}`);
+    fetchPrograms();
+  } catch (error) {
+    console.error(error);
+  }
+};
 
+const rejectProgram = async (id: number) => {
+  try {
+    await api.patch(`/programs/reject/${id}`);
+    fetchPrograms();
+  } catch (error) {
+    console.error(error);
+  }
+};
             return (
               <div
                 key={p.id}
@@ -634,6 +716,7 @@ function ProgramsContent() {
                         `}
                       />
                     </button>
+                    
 
                     <button
                       disabled={uploadingId === p.id}
@@ -659,22 +742,43 @@ function ProgramsContent() {
                     />
                   </div>
 
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => {
-                        setEditId(p.id);
-                        setModalOpen(true);
-                      }}
-                      className="
-                        p-2 rounded-lg text-blue-900
-                        hover:bg-blue-900/10 active:scale-95
-                        transition
-                      "
-                    >
-                      <Pencil size={16} />
-                    </button>
+                 <div className="flex items-center gap-2">
 
-                  </div>
+{/* APPROVAL BUTTONS */}
+{p.approvalStatus === "pending" && (
+  <>
+    <button
+      onClick={() => approveProgram(p.id)}
+      className="px-3 py-1 rounded-lg bg-green-600 text-white text-xs hover:bg-green-700"
+    >
+      Approve
+    </button>
+
+    <button
+      onClick={() => rejectProgram(p.id)}
+      className="px-3 py-1 rounded-lg bg-red-600 text-white text-xs hover:bg-red-700"
+    >
+      Reject
+    </button>
+  </>
+)}
+
+{/* EDIT BUTTON */}
+<button
+  onClick={() => {
+    setEditId(p.id);
+    setModalOpen(true);
+  }}
+  className="
+    p-2 rounded-lg text-blue-900
+    hover:bg-blue-900/10 active:scale-95
+    transition
+  "
+>
+  <Pencil size={16} />
+</button>
+
+</div>
                 </div>
               </div>
             );
