@@ -139,14 +139,18 @@ const getOfficial = (position: string) =>
       o.isActive &&
       o.position.toLowerCase().includes(position.toLowerCase())
   )?.fullName;
+const filtered = useMemo(() => {
 
-  const filtered = useMemo(() => {
-    if (month === 'ALL') return data;
+  /* remove programs with no budget */
+  const withBudget = data.filter(d => d.used && d.used > 0);
 
-    return data.filter(d =>
-      new Date(d.createdAt).getMonth() === Number(month)
-    );
-  }, [data, month]);
+  if (month === 'ALL') return withBudget;
+
+  return withBudget.filter(d =>
+    new Date(d.createdAt).getMonth() === Number(month)
+  );
+
+}, [data, month]);
 
   const totalCost = useMemo(() => {
     return filtered.reduce((sum, r) => sum + r.used, 0);
@@ -190,7 +194,7 @@ const getOfficial = (position: string) =>
             <p className="text-sm">Municipality of Trinidad</p>
             <p className="text-sm">Barangay Bongbong</p>
             <p className="text-sm">Office of the Sangguniang Kabataan</p>
-            <p className="font-bold text-xl mt-4">PROCUREMENT REPORT</p>
+            <p className="font-bold text-xl mt-4">ACCOMPLISHMENT REPORT</p>
                           <p className="text-sm">
 Fiscal Year : {fiscalYear}
               </p>

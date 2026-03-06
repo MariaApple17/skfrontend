@@ -275,17 +275,18 @@ useEffect(() => {
       
       label: 'Programs Management',
       icon: FolderKanban,
+
+        
       children: [
-        {
+       {
           label: 'Create Program',
-          href: '/admin/programs',
-           permission: 'PROGRAMS_VIEW',
-        },
-        {
-          label: 'Program Approval',
+        href: '/admin/programs',
+           permission: 'PROGRAMS_VIEW'},
+       {
+         label: 'Program Approval',
           href: '/admin/programs/approval',
         },
-      ],
+     ],
     },
     {
       label: 'User Management',
