@@ -250,14 +250,15 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
 
             <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex items-center gap-3 shrink-0 group">
               <div className="w-9 h-9 rounded-xl overflow-hidden border border-black/5 shadow-sm shrink-0">
-                {sp?.logoUrl
-                  ? <img src={sp.logoUrl} alt="logo" className="w-full h-full object-cover" />
-                  : <div className="w-full h-full bg-gradient-to-br from-red-600 to-blue-700 flex items-center justify-center text-white font-bold text-xs">SK</div>
-                }
+               <img
+  src="/logo/sk-logo.png"
+  alt="SK Logo"
+  className="w-full h-full object-contain"
+/>
               </div>
               <div className="hidden sm:block text-left leading-tight max-w-[200px]">
-                <p className="text-[13px] font-semibold text-slate-800 truncate group-hover:text-red-600 transition-colors">
-                  {sp?.systemName ?? 'SK Transparency'}
+                <p className="text-[13px] font-semibold text-slate-100 truncate group-hover:text-red-600 transition-colors">
+                  {sp?.systemName ?? 'SK360: Project, Budget, and Report Monitoring System'}
                 </p>
                 {sp?.location && <p className="text-[10.5px] text-slate-400 truncate">{sp.location}</p>}
               </div>
@@ -304,7 +305,13 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
         <section className="noise relative min-h-screen flex flex-col items-center justify-center pt-28 pb-20 px-6 sm:px-12 overflow-hidden bg-slate-950">
           <div className="blob1 pointer-events-none absolute -top-20 -right-24 w-[540px] h-[540px] rounded-full bg-red-600/15 blur-[110px]" />
           <div className="blob2 pointer-events-none absolute -bottom-16 -left-24 w-[460px] h-[460px] rounded-full bg-blue-700/15 blur-[100px]" />
-          <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.7) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.7) 1px,transparent 1px)', backgroundSize: '64px 64px' }} />
+          <div className="absolute inset-0 opacity-[0.05]"
+style={{
+backgroundImage:
+"linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)",
+backgroundSize: "60px 60px"
+}}
+/>
 
           {/* Active FY badge */}
           <div className="e1 flex items-center gap-3 mb-8 relative z-10">
@@ -323,7 +330,11 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
           {!loading && sp?.logoUrl && (
             <div className="e2 mb-6 relative z-10">
               <div className="w-20 h-20 rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-black/40">
-                <img src={sp.logoUrl} alt={sp.systemName} className="w-full h-full object-cover" />
+                 <img
+  src="/logo/sk-logo.png"
+  alt="SK Logo"
+  className="w-full h-full object-contain"
+/>
               </div>
             </div>
           )}
@@ -332,7 +343,7 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
           <h1 className="e3 serif text-[clamp(34px,5.5vw,78px)] leading-[1.06] text-center text-white max-w-[880px] tracking-[-0.02em] mb-4 relative z-10">
             {loading
               ? <span className="text-white/15 animate-pulse">Loading…</span>
-              : <><span className="text-white/90">{sp?.systemName ?? 'SK Transparency Portal'}</span><br /><em className="grad-text not-italic">Open to everyone.</em></>
+              : <><span className="text-white/90">{sp?.systemName ?? 'SK360: Project, Budget, and Report Monitoring System'}</span><br /></>
             }
           </h1>
 
@@ -392,7 +403,7 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
             </div>
 
             {data?.generatedAt && (
-              <p className="text-center mono text-[10px] text-white/15 mt-4">
+              <p className="text-center mono text-[15px] text-slate-100 mt-4">
                 Data as of {new Date(data.generatedAt).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })}
               </p>
             )}
@@ -769,7 +780,7 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
         </section>
 
         {/* ══ CTA ═══════════════════════════════════════════════════════════ */}
-        <section className="py-24 px-6 sm:px-12 bg-[#f9f8f6] border-t border-slate-100">
+        <section className="pt-32 pb-24 bg-gradient-to-br from-blue-50 via-white to-red-50 text-slate-900 text-center relative overflow-hidden">
           <Reveal>
             <div className="noise relative bg-slate-950 rounded-[24px] max-w-7xl mx-auto px-8 sm:px-20 py-16 sm:py-20 text-center overflow-hidden">
               <div className="pointer-events-none absolute -top-20 -right-20 w-96 h-96 bg-red-600/15 rounded-full blur-3xl" />
@@ -797,10 +808,11 @@ export default function PublicLayout({ children }: { children?: React.ReactNode 
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg overflow-hidden border border-slate-100 shadow-sm shrink-0">
-                {sp?.logoUrl
-                  ? <img src={sp.logoUrl} alt="logo" className="w-full h-full object-cover" />
-                  : <div className="w-full h-full bg-gradient-to-br from-red-600 to-blue-700 flex items-center justify-center text-white font-bold text-[10px]">SK</div>
-                }
+                 <img
+  src="/logo/sk-logo.png"
+  alt="SK Logo"
+  className="w-full h-full object-contain"
+/>
               </div>
               <p className="text-[13px] font-semibold text-slate-700 truncate max-w-[200px]">{sp?.systemName ?? 'SK Transparency'}</p>
             </div>

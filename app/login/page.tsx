@@ -1,10 +1,6 @@
 'use client';
 
-import {
-  useEffect,
-  useState,
-} from 'react';
-
+import { useEffect, useState } from 'react';
 import {
   AlertCircle,
   CheckCircle2,
@@ -32,29 +28,26 @@ interface SystemProfile {
 export default function LoginPage() {
   const router = useRouter();
 
-  // ================= SYSTEM PROFILE =================
   const [systemProfile, setSystemProfile] = useState<SystemProfile | null>(null);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  // Email validation
   const [emailTouched, setEmailTouched] = useState(false);
+
   const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const showEmailError = emailTouched && email && !isValidEmail;
 
-  // Mount animation
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Load system profile
   useEffect(() => {
     const loadSystemProfile = async () => {
       try {
@@ -63,27 +56,16 @@ export default function LoginPage() {
           setSystemProfile(res.data.data);
         }
       } catch (err) {
-        console.error('Failed to load system profile', err);
+        console.error(err);
       }
     };
 
     loadSystemProfile();
   }, []);
 
-  // Handle Enter key
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && !loading && email && password) {
-        handleLogin();
-      }
-    };
-    window.addEventListener('keypress', handleKeyPress);
-    return () => window.removeEventListener('keypress', handleKeyPress);
-  }, [email, password, loading]);
-
   const handleLogin = async () => {
     if (!isValidEmail) {
-      setError('Please enter a valid email address');
+      setError('Please enter a valid email');
       return;
     }
 
@@ -92,15 +74,12 @@ export default function LoginPage() {
       return;
     }
 
-    setError('');
     setLoading(true);
 
     try {
       const res = await api.post('/auth/login', { email, password });
 
-      if (!res.data?.success) {
-        throw new Error(res.data?.message || 'Login failed');
-      }
+      if (!res.data?.success) throw new Error(res.data?.message);
 
       sessionStorage.setItem('token', res.data.data.token);
 
@@ -119,12 +98,9 @@ export default function LoginPage() {
       setTimeout(() => {
         router.replace('/admin/dashboard');
       }, 1200);
+
     } catch (err: any) {
-      setError(
-        err?.response?.data?.message ||
-        err.message ||
-        'Invalid email or password'
-      );
+      setError(err?.response?.data?.message || 'Invalid login');
     } finally {
       setLoading(false);
     }
@@ -133,164 +109,185 @@ export default function LoginPage() {
   const isFormValid = email && password && isValidEmail;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 p-4">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -left-20 w-72 h-72 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse" />
-        <div className="absolute bottom-1/4 -right-20 w-72 h-72 bg-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse delay-700" />
+    <div className="relative min-h-screen grid lg:grid-cols-2 overflow-hidden bg-gradient-to-br from-black via-slate-900 to-indigo-950">
+
+      {/* Animated background blobs */}
+      <div className="absolute -top-32 -left-32 w-96 h-96 bg-blue-600 rounded-full blur-[120px] opacity-30 animate-pulse" />
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-red-500 rounded-full blur-[120px] opacity-30 animate-pulse delay-700" />
+
+      {/* LEFT BRANDING */}
+      <div
+        className={`
+        hidden lg:flex flex-col justify-center px-20 text-white
+        transition-all duration-1000
+        ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'}
+      `}
+      >
+        <div className="flex items-center gap-4 mb-10">
+
+          {systemProfile?.logoUrl ? (
+            <img
+              src={systemProfile.logoUrl}
+              alt="logo"
+              className="w-20 h-20 object-contain"
+            />
+          ) : (
+            <div className="w-20 h-20 bg-blue-600 rounded-xl flex items-center justify-center text-3xl font-bold">
+              SK
+            </div>
+          )}
+
+          <h1 className="text-4xl font-bold">
+            {systemProfile?.systemName ?? 'SK360'}
+          </h1>
+
+        </div>
+
+        <h2 className="text-6xl font-bold leading-tight max-w-2xl">
+          Empowering Youth Through
+          <span className="block text-red-500">
+            Transparent Leadership
+          </span>
+        </h2>
+
+        {/* Philippine flag accent */}
+        <div className="mt-8 w-40 h-1.5 rounded-full bg-gradient-to-r from-red-500 via-yellow-400 to-blue-600 shadow-lg shadow-red-500/30" />
+
+        <p className="mt-8 text-lg text-slate-300 max-w-xl leading-relaxed">
+          {systemProfile?.systemDescription ??
+            'A digital platform for managing SK budgets, programs, and reports while promoting transparency and accountability.'}
+        </p>
       </div>
 
-      <div 
-        className={`
-          relative w-full max-w-md
-          transition-all duration-700 ease-out
-          ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}
+      {/* LOGIN SECTION */}
+      <div className="flex items-center justify-center p-8">
+
+        <div
+          className={`
+          w-full max-w-xl
+          transition-all duration-500
+          ${mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}
         `}
-      >
-        <div className="rounded-3xl bg-white/80 backdrop-blur-xl p-10 shadow-[0_20px_80px_rgba(0,0,0,0.12)] border border-white/20">
-          
-          {/* Logo with animation */}
-          <div className="mb-8 flex justify-center">
-            <div 
-              className={`
-                relative transition-all duration-700 delay-100
-                ${mounted ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}
-              `}
-            >
-              <div className="absolute inset-0 bg-blue-400 rounded-2xl blur-xl opacity-20 animate-pulse" />
-              <div className="relative bg-linear-to-br from-blue-500 to-indigo-600 p-4 rounded-2xl shadow-lg">
-                {systemProfile?.logoUrl ? (
+        >
+
+          <div
+            className="
+            backdrop-blur-xl
+            bg-white/80
+            border border-white/20
+            rounded-3xl
+            p-14
+            shadow-[0_30px_120px_rgba(0,0,0,0.35)]
+          "
+          >
+
+            {/* LOGIN HEADER */}
+            <div className="text-center mb-8">
+
+              {systemProfile?.logoUrl && (
+                <div className="flex justify-center mb-4">
                   <img
                     src={systemProfile.logoUrl}
-                    alt={systemProfile.systemName}
-                    width={64}
-                    height={64}
-                    className="relative z-10"
+                    alt="logo"
+                    className="w-16 h-16 object-contain"
                   />
-                ) : (
-                  <span className="relative z-10 text-white text-2xl font-bold">
-                    {systemProfile?.systemName?.charAt(0) ?? 'S'}
-                  </span>
+                </div>
+              )}
+
+              <h1 className="text-3xl font-bold text-slate-800">
+                Official Login
+              </h1>
+
+              <p className="text-sm text-slate-500 mt-1">
+                Access the SK360 dashboard
+              </p>
+
+            </div>
+
+            {/* FORM */}
+            <div className="space-y-3">
+
+              <div className="space-y-1">
+                <FlatInput
+                  label="Email"
+                  type="email"
+                  placeholder="user@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onBlur={() => setEmailTouched(true)}
+                  icon={Mail}
+                />
+
+                {showEmailError && (
+                  <div className="flex items-center gap-1 text-xs text-red-500">
+                    <AlertCircle className="w-3 h-3" />
+                    Invalid email
+                  </div>
+                )}
+
+                {emailTouched && isValidEmail && (
+                  <div className="flex items-center gap-1 text-xs text-green-600">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Valid email
+                  </div>
                 )}
               </div>
-            </div>
-          </div>
 
-          {/* Header */}
-          <div 
-            className={`
-              mb-8 text-center
-              transition-all duration-700 delay-200
-              ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
-            `}
-          >
-            <h1 className="text-3xl font-bold bg-linear-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-              {systemProfile?.systemName ?? 'Welcome Back'}
-            </h1>
-            <p className="mt-2 text-sm text-slate-500">
-              {systemProfile?.systemDescription ?? 'Sign in to access your dashboard'}
-            </p>
-          </div>
+              <div className="relative">
+                <FlatInput
+                  label="Password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  icon={Lock}
+                />
 
-          {/* Form */}
-          <div 
-            className={`
-              space-y-5
-              transition-all duration-700 delay-300
-              ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
-            `}
-          >
-            {/* Email Input */}
-            <div className="space-y-1">
-              <FlatInput
-                label="Email"
-                type="email"
-                placeholder="user@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onBlur={() => setEmailTouched(true)}
-                icon={Mail}
-              />
-              {showEmailError && (
-                <div className="flex items-center gap-1.5 text-xs text-red-500">
-                  <AlertCircle className="w-3 h-3" />
-                  <span>Please enter a valid email address</span>
-                </div>
-              )}
-              {emailTouched && isValidEmail && (
-                <div className="flex items-center gap-1.5 text-xs text-green-600">
-                  <CheckCircle2 className="w-3 h-3" />
-                  <span>Valid email</span>
-                </div>
-              )}
-            </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-9 text-slate-400"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
 
-            {/* Password Input */}
-            <div className="relative">
-              <FlatInput
-                label="Password"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                icon={Lock}
-              />
               <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-9.5 text-slate-400 hover:text-slate-600"
+                onClick={handleLogin}
+                disabled={!isFormValid || loading}
+                className="
+                w-full mt-4 py-4 rounded-xl text-white font-semibold
+                bg-gradient-to-r from-blue-600 to-indigo-600
+                hover:shadow-xl hover:shadow-blue-500/40
+                transition-all duration-300
+              "
               >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {loading ? 'Signing in...' : 'Sign In'}
               </button>
+
             </div>
 
-            {/* Login Button */}
-            <button
-              onClick={handleLogin}
-              disabled={loading || !isFormValid}
-              className="
-                group relative mt-2 w-full rounded-xl py-3.5 text-sm font-semibold
-                bg-linear-to-r from-blue-600 to-indigo-600
-                text-white shadow-lg shadow-blue-500/30
-                hover:shadow-xl hover:shadow-blue-500/40
-                active:scale-[0.98]
-                disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none
-                transition-all duration-200
-              "
-            >
-              {loading ? 'Signing in…' : 'Sign In'}
-            </button>
-          </div>
-
-          {/* Footer accent */}
-          <div className="mt-8 flex flex-col items-center gap-3">
-            <div className="h-1 w-12 rounded-full bg-linear-to-r from-yellow-400 to-amber-400 shadow-lg shadow-yellow-400/30" />
-            <p className="text-xs text-slate-400">
+            <div className="mt-8 text-center text-xs text-slate-500">
               Secured by {systemProfile?.systemName ?? 'System'}
-            </p>
+            </div>
+
           </div>
+
+          {/* SYSTEM INFO */}
+          <div className="mt-6 text-center text-xs text-slate-400">
+            {systemProfile?.systemName}
+            {systemProfile?.fiscalYear?.year &&
+              ` • FY ${systemProfile.fiscalYear.year}`}
+          </div>
+
         </div>
 
-        {/* System Info */}
-        <div className="mt-6 text-center">
-          <p className="text-xs text-slate-400">
-            {systemProfile?.systemName}
-            {systemProfile?.fiscalYear?.year
-              ? ` • FY ${systemProfile.fiscalYear.year}`
-              : ''}
-          </p>
-          <p className="mt-1 text-xs text-slate-300">
-            © {new Date().getFullYear()} All rights reserved
-          </p>
-          {systemProfile?.location && (
-            <p className="mt-1 text-xs text-slate-300">
-              {systemProfile.location}
-            </p>
-          )}
-        </div>
       </div>
 
-      {/* Error Modal */}
       <AlertModal
         open={!!error}
         type="error"
@@ -301,7 +298,6 @@ export default function LoginPage() {
         onClose={() => setError('')}
       />
 
-      {/* Success Modal */}
       <AlertModal
         open={success}
         type="success"
@@ -311,6 +307,7 @@ export default function LoginPage() {
         onConfirm={() => router.replace('/admin/dashboard')}
         onClose={() => router.replace('/admin/dashboard')}
       />
+
     </div>
   );
 }

@@ -85,7 +85,6 @@ interface RemainingBudget {
 }
 
 /* ================= CONSTANTS ================= */
-const CATEGORY_OPTIONS: BudgetCategory[] = ['ADMINISTRATIVE', 'YOUTH'];
 const initialForm: FormState = {
   budgetId: '',
   limitId: '',
