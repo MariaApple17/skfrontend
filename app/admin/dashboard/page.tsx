@@ -28,6 +28,7 @@ import {
 
 import api from '@/components/lib/api';
 import AlertModal from '@/components/reusable/modal/AlertModal';
+import { DashboardPageShimmer } from '@/components/reusable/ui/PageShimmer';
 
 /* ================= PAGE ================= */
 
@@ -71,7 +72,7 @@ export default function DashboardPage() {
       );
   }, [selectedFy]);
 
-  if (!user || !data) return null;
+  if (!user || !data) return <DashboardPageShimmer />;
 
   /* ================= NORMALIZE ================= */
   const isAllMode = data.mode === 'ALL';

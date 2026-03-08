@@ -18,6 +18,7 @@ import AuthGuard from '@/components/reusable/guard/AuthGuard';
 import AlertModal from '@/components/reusable/modal/AlertModal';
 import FiscalYearUpsertModal
   from '@/components/reusable/modal/FiscalYearUpsertModal';
+import { AdminPageShimmer } from '@/components/reusable/ui/PageShimmer';
 
 interface FiscalYear {
   id: number;
@@ -99,9 +100,7 @@ function FiscalYearContent() {
 
       {/* ================= CONTENT ================= */}
       {loading ? (
-        <p className="text-sm text-slate-500">
-          Loading fiscal years…
-        </p>
+        <AdminPageShimmer cards={6} showFilters={false} />
       ) : items.length === 0 ? (
         /* EMPTY STATE */
         <div

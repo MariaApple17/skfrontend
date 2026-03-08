@@ -23,6 +23,7 @@ import AuthGuard from '@/components/reusable/guard/AuthGuard';
 import AlertModal from '@/components/reusable/modal/AlertModal';
 import UpsertSKOfficialModal
   from '@/components/reusable/modal/UpsertSKOfficialModal';
+import { AdminPageShimmer } from '@/components/reusable/ui/PageShimmer';
 import FlatInput from '@/components/reusable/ui/FlatInput';
 
 /* ================= TYPES ================= */
@@ -222,7 +223,7 @@ function SKOfficialsContent() {
 
       {/* CONTENT */}
       {loading ? (
-        <p className="text-sm text-slate-500">Loading…</p>
+        <AdminPageShimmer cards={6} showFilters={false} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-7">
   {officials.map(o => {

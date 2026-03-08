@@ -18,6 +18,7 @@ import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
 
 import api from '@/components/lib/api';
+import { AdminPageShimmer } from '@/components/reusable/ui/PageShimmer';
 
 type ReportType =
   | 'budget'
@@ -331,9 +332,7 @@ const [viewMode, setViewMode] = useState<ViewMode>('table'); // default = TABLE
 {/* TABLE / GRID */}
 <div className="bg-white rounded-3xl shadow-sm p-6">
   {loading ? (
-    <div className="p-10 text-center text-slate-400">
-      Loading report…
-    </div>
+    <AdminPageShimmer cards={6} showFilters={false} />
   ) : rows.length === 0 ? (
     <div className="p-10 text-center text-slate-400">
       No data found

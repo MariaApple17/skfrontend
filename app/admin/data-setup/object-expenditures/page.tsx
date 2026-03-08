@@ -10,7 +10,6 @@ import {
   Layers,
   Pencil,
   Plus,
-  Trash2,
 } from 'lucide-react';
 
 import api from '@/components/lib/api';
@@ -18,6 +17,7 @@ import AuthGuard from '@/components/reusable/guard/AuthGuard';
 import AlertModal from '@/components/reusable/modal/AlertModal';
 import ObjectOfExpenditureUpsertModal
   from '@/components/reusable/modal/ObjectOfExpenditureUpsertModal';
+import { AdminPageShimmer } from '@/components/reusable/ui/PageShimmer';
 
 /* ================= TYPES ================= */
 interface ObjectOfExpenditure {
@@ -45,12 +45,22 @@ function ObjectOfExpenditureContent() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [alertOpen, setAlertOpen] = useState<boolean>(false);
 
+  /* PAGINATION */
+  const [page, setPage] = useState<number>(1);
+  const [limit] = useState<number>(6);
+  const [totalPages, setTotalPages] = useState<number>(1);
+
   /* ================= FETCH ================= */
   const fetchObjects = async () => {
     setLoading(true);
+
     try {
-      const res = await api.get('/objects-of-expenditure');
+      const res = await api.get(
+        `/objects-of-expenditure?page=${page}&limit=${limit}`
+      );
+
       setItems(res.data?.data ?? []);
+      setTotalPages(res.data?.pagination?.totalPages ?? 1);
     } catch (err) {
       console.error('Failed to fetch objects of expenditure', err);
     } finally {
@@ -60,7 +70,7 @@ function ObjectOfExpenditureContent() {
 
   useEffect(() => {
     fetchObjects();
-  }, []);
+  }, [page]);
 
   /* ================= DELETE ================= */
   const confirmDelete = async () => {
@@ -94,11 +104,7 @@ function ObjectOfExpenditureContent() {
             setEditId(null);
             setModalOpen(true);
           }}
-          className="
-            flex items-center gap-2 px-4 py-2 rounded-xl
-            bg-blue-900 text-white text-sm font-medium
-            hover:bg-blue-800 transition
-          "
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-900 text-white text-sm font-medium hover:bg-blue-800 transition"
         >
           <Plus size={16} />
           New Object
@@ -107,27 +113,10 @@ function ObjectOfExpenditureContent() {
 
       {/* ================= CONTENT ================= */}
       {loading ? (
-        <p className="text-sm text-slate-500">
-          Loading objects of expenditure…
-        </p>
+        <AdminPageShimmer cards={6} showFilters={false} />
       ) : items.length === 0 ? (
-        /* EMPTY STATE */
-        <div
-          className="
-            w-full rounded-2xl bg-white p-12
-            shadow-lg shadow-slate-200/60
-            flex flex-col items-center justify-center
-            text-center
-          "
-        >
-          <div
-            className="
-              w-16 h-16 rounded-2xl
-              bg-blue-900/10
-              flex items-center justify-center
-              mb-5
-            "
-          >
+        <div className="w-full rounded-2xl bg-white p-12 shadow-lg shadow-slate-200/60 flex flex-col items-center justify-center text-center">
+          <div className="w-16 h-16 rounded-2xl bg-blue-900/10 flex items-center justify-center mb-5">
             <Layers className="text-blue-900" size={28} />
           </div>
 
@@ -145,92 +134,88 @@ function ObjectOfExpenditureContent() {
               setEditId(null);
               setModalOpen(true);
             }}
-            className="
-              flex items-center gap-2 px-4 py-2 rounded-xl
-              bg-blue-900 text-white text-sm font-medium
-              hover:bg-blue-800 transition
-            "
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-900 text-white text-sm font-medium hover:bg-blue-800 transition"
           >
             <Plus size={16} />
             Create First Object
           </button>
         </div>
       ) : (
-        /* GRID */
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {items.map((obj) => (
-            <div
-              key={obj.id}
-              className="
-                rounded-2xl bg-white p-5
-                shadow-lg shadow-slate-200/60
-                hover:shadow-xl hover:-translate-y-0.5
-                transition-all duration-200
-              "
-            >
-              {/* CARD HEADER */}
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div
-                    className="
-                      w-10 h-10 rounded-xl
-                      bg-blue-900/10
-                      flex items-center justify-center
-                    "
-                  >
-                    <FileText
-                      className="text-blue-900"
-                      size={18}
-                    />
+        <>
+          {/* GRID */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {items.map((obj) => (
+              <div
+                key={obj.id}
+                className="rounded-2xl bg-white p-5 shadow-lg shadow-slate-200/60 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-900/10 flex items-center justify-center">
+                      <FileText className="text-blue-900" size={18} />
+                    </div>
+
+                    <div>
+                      <h3 className="font-semibold text-slate-900">
+                        {obj.name}
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        Code: {obj.code}
+                      </p>
+                      <p className="text-xs text-blue-700 font-medium">
+                        {obj.classification?.name}
+                      </p>
+                    </div>
                   </div>
 
-                  <div>
-                    <h3 className="font-semibold text-slate-900">
-                      {obj.name}
-                    </h3>
-                    <p className="text-xs text-slate-500">
-                      Code: {obj.code}
-                    </p>
-                    <p className="text-xs text-blue-700 font-medium">
-  {obj.classification?.name}
-</p>
-                  </div>
-                </div>
-
-                {/* ACTIONS */}
-                <div className="flex gap-2">
                   <button
                     onClick={() => {
                       setEditId(obj.id);
                       setModalOpen(true);
                     }}
-                    className="
-                      p-2 rounded-lg
-                      text-blue-900
-                      hover:bg-blue-900/10
-                      transition
-                    "
+                    className="p-2 rounded-lg text-blue-900 hover:bg-blue-900/10 transition"
                   >
                     <Pencil size={16} />
                   </button>
                 </div>
-              </div>
 
-              {/* DESCRIPTION */}
-              {obj.description && (
-                <p className="text-sm text-slate-600 mb-3">
-                  {obj.description}
+                {obj.description && (
+                  <p className="text-sm text-slate-600 mb-3">
+                    {obj.description}
+                  </p>
+                )}
+
+                <p className="text-xs text-slate-500">
+                  Created:{' '}
+                  {new Date(obj.createdAt).toLocaleDateString()}
                 </p>
-              )}
+              </div>
+            ))}
+          </div>
 
-              {/* META */}
-              <p className="text-xs text-slate-500">
-                Created:{' '}
-                {new Date(obj.createdAt).toLocaleDateString()}
-              </p>
-            </div>
-          ))}
-        </div>
+          {/* ================= PAGINATION ================= */}
+          <div className="flex justify-center items-center gap-4 mt-10">
+            <button
+              onClick={() => setPage((prev) => prev - 1)}
+              disabled={page === 1}
+              className="px-4 py-2 rounded-lg bg-slate-200 text-sm font-medium disabled:opacity-40"
+            >
+              Previous
+            </button>
+
+            <span className="text-sm text-slate-600">
+              Page {page} of {totalPages}
+            </span>
+
+            <button
+              onClick={() => setPage((prev) => prev + 1)}
+              disabled={page === totalPages}
+              className="px-4 py-2 rounded-lg bg-blue-900 text-white text-sm font-medium disabled:opacity-40"
+            >
+              Next
+            </button>
+          </div>
+        </>
       )}
 
       {/* ================= UPSERT MODAL ================= */}

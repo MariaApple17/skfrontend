@@ -16,6 +16,7 @@ import api from '@/components/lib/api';
 import AuthGuard from '@/components/reusable/guard/AuthGuard';
 import AlertModal from '@/components/reusable/modal/AlertModal';
 import RoleUpsertModal from '@/components/reusable/modal/RoleUpsertModal';
+import { AdminPageShimmer } from '@/components/reusable/ui/PageShimmer';
 
 interface Role {
   id: number;
@@ -101,7 +102,7 @@ function RolesContent() {
 
       {/* CONTENT */}
       {loading ? (
-        <p className="text-sm text-slate-500">Loading roles…</p>
+        <AdminPageShimmer cards={6} showFilters={false} />
       ) : roles.length === 0 ? (
         /* EMPTY STATE — FULL WIDTH */
         <div

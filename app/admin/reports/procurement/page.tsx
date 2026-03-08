@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import api from '@/components/lib/api';
+import { ReportPageShimmer } from '@/components/reusable/ui/PageShimmer';
 import FlatSelect from '@/components/reusable/ui/FlatSelect';
 
 /* ================= TYPES ================= */
@@ -161,7 +162,7 @@ const grandTotal = useMemo(() => {
   return tableRows.reduce((sum, row) => sum + Number(row.totalPrice || 0), 0);
 }, [tableRows]);
 
-  if (loading) return <p className="py-20 text-center">Loading…</p>;
+  if (loading) return <ReportPageShimmer />;
 
   return (
     <>
@@ -193,18 +194,43 @@ const grandTotal = useMemo(() => {
           id="print-area"
           className="bg-white w-[1000px] p-12 shadow-xl"
         >
-          {/* HEADER */}
-          <div className="text-center space-y-1">
-            <p className="text-sm">REPUBLIC OF THE PHILIPPINES</p>
-            <p className="text-sm">PROVINCE OF BOHOL</p>
-            <p className="text-sm">Municipality of Trinidad</p>
-            <p className="text-sm">Barangay Bongbong</p>
-            <p className="text-sm">Office of the Sangguniang Kabataan</p>
-            <p className="font-bold text-xl mt-4">PROCUREMENT REPORT</p>
-                          <p className="text-sm">
-Fiscal Year : {fiscalYear}
-              </p>
-          </div>
+               
+{/* HEADER WITH LOGOS */}
+
+<div className="flex items-start justify-center gap-16 mb-6">
+
+  {/* LEFT LOGO */}
+  <img
+    src="/logo/logo.jpg"
+    alt="Barangay Logo"
+    className="w-28 h-28 object-contain ml-20"
+  />
+
+  {/* CENTER HEADER */}
+  <div className="text-center flex-1 space-y-1">
+    <p className="text-sm">REPUBLIC OF THE PHILIPPINES</p>
+    <p className="text-sm">PROVINCE OF BOHOL</p>
+    <p className="text-sm">Municipality of Trinidad</p>
+    <p className="text-sm">Barangay Bongbong</p>
+    <p className="text-sm">Office of the Sangguniang Kabataan</p>
+
+    <p className="font-bold text-xl mt-4">
+      PROCUREMENT REPORT
+    </p>
+
+    <p className="text-sm">
+      Fiscal Year : {fiscalYear}
+    </p>
+  </div>
+
+  {/* RIGHT LOGO */}
+  <img
+    src="/logo/sk-logo.png"
+    alt="SK Logo"
+    className="w-28 h-28 object-contain mr-20"
+  />
+
+</div>
 
           {/* TABLE */}
           <table className="w-full mt-10 border border-black text-sm">

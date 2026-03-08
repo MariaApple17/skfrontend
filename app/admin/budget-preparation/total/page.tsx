@@ -17,6 +17,7 @@ import api from '@/components/lib/api';
 import AuthGuard from '@/components/reusable/guard/AuthGuard';
 import AlertModal from '@/components/reusable/modal/AlertModal';
 import BudgetUpsertModal from '@/components/reusable/modal/BudgetUpsertModal';
+import { AdminPageShimmer } from '@/components/reusable/ui/PageShimmer';
 
 interface Budget {
   id: number;
@@ -113,9 +114,7 @@ function BudgetContent() {
 
       {/* ================= CONTENT ================= */}
       {loading ? (
-        <p className="text-sm text-slate-500">
-          Loading budgets…
-        </p>
+        <AdminPageShimmer cards={6} showFilters={false} />
       ) : budgets.length === 0 ? (
         /* EMPTY STATE */
         <div

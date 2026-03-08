@@ -5,6 +5,7 @@ import { Building2, MapPin, Upload } from 'lucide-react';
 
 import api from '@/components/lib/api';
 import AlertModal from '@/components/reusable/modal/AlertModal';
+import { FormPageShimmer } from '@/components/reusable/ui/PageShimmer';
 import FlatInput from '@/components/reusable/ui/FlatInput';
 
 interface SystemProfile {
@@ -137,7 +138,7 @@ export default function SystemProfilePage() {
     }
   };
 
-  if (loading || !profile) return null;
+  if (loading || !profile) return <FormPageShimmer />;
 
   /* ================= UI ================= */
   return (

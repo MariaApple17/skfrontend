@@ -13,6 +13,7 @@ import AuthGuard from '@/components/reusable/guard/AuthGuard';
 import AlertModal from '@/components/reusable/modal/AlertModal';
 import ClassificationUpsertModal
   from '@/components/reusable/modal/ClassificationUpsertModal';
+import { AdminPageShimmer } from '@/components/reusable/ui/PageShimmer';
 
 /* ================= TYPES ================= */
 interface BudgetClassification {
@@ -126,9 +127,7 @@ function ClassificationContent() {
 
       {/* ================= CONTENT ================= */}
       {loading ? (
-        <p className="text-sm text-slate-500">
-          Loading classifications…
-        </p>
+        <AdminPageShimmer cards={6} showFilters={false} />
       ) : items.length === 0 ? (
         /* EMPTY STATE */
         <div className="w-full rounded-2xl bg-white p-12 shadow-lg shadow-slate-200/60 flex flex-col items-center justify-center text-center">

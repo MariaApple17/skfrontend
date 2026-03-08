@@ -20,6 +20,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import api from '@/components/lib/api';
 import AuthGuard from '@/components/reusable/guard/AuthGuard';
 import ProgramUpsertModal from '@/components/reusable/modal/ProgramUpsertModal';
+import { AdminPageShimmer } from '@/components/reusable/ui/PageShimmer';
 import FlatInput from '@/components/reusable/ui/FlatInput';
 
 /* ================= TYPES ================= */
@@ -369,7 +370,7 @@ onChange={(e)=>router.push(`?q=${e.target.value}`)}
 
 {loading ? (
 
-<p>Loading programs...</p>
+<AdminPageShimmer cards={6} showFilters={false} />
 
 ) : (
 

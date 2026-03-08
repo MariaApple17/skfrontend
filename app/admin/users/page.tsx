@@ -19,6 +19,7 @@ import api from '@/components/lib/api';
 import AuthGuard from '@/components/reusable/guard/AuthGuard';
 import AlertModal from '@/components/reusable/modal/AlertModal';
 import UserUpsertModal from '@/components/reusable/modal/UserUpsertModal';
+import { AdminPageShimmer } from '@/components/reusable/ui/PageShimmer';
 
 /* ================= TYPES ================= */
 
@@ -297,7 +298,7 @@ function UsersContent() {
 
    {/* ================= GRID ================= */}
 {loading ? (
-  <p className="text-sm text-slate-500">Loading users…</p>
+  <AdminPageShimmer cards={6} showFilters={false} />
 ) : (
   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-7">
     {users.map((user) => (

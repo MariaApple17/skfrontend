@@ -18,6 +18,7 @@ import AuthGuard from '@/components/reusable/guard/AuthGuard';
 import AlertModal from '@/components/reusable/modal/AlertModal';
 import BudgetAllocationUpsertModal
   from '@/components/reusable/modal/BudgetAllocationUpsertModal';
+import { AdminPageShimmer } from '@/components/reusable/ui/PageShimmer';
 import FlatSelect from '@/components/reusable/ui/FlatSelect';
 
 /* ================= TYPES ================= */
@@ -288,9 +289,7 @@ function BudgetAllocationContent() {
       
       {/* ================= CONTENT ================= */}
       {loading ? (
-        <p className="text-sm text-slate-400">
-          Loading budget allocations…
-        </p>
+        <AdminPageShimmer cards={6} showFilters={false} />
       ) : items.length === 0 ? (
         /* EMPTY STATE */
         <div className="w-full rounded-3xl bg-white border border-slate-100 p-16 flex flex-col items-center text-center">

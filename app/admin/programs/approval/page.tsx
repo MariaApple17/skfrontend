@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import api from "@/components/lib/api"
 import ProgramApprovalModal from "@/components/reusable/modal/ProgramApprovalModal"
 import AlertModal from "@/components/reusable/modal/AlertModal"
+import { AdminPageShimmer } from "@/components/reusable/ui/PageShimmer"
 
 interface Approval{
 member:string
@@ -133,9 +134,7 @@ Program Approval
 </h1>
 
 {loading && (
-<p className="text-gray-500 text-sm">
-Loading programs...
-</p>
+<AdminPageShimmer cards={6} showFilters={false} />
 )}
 
 {!loading && programs.length === 0 && (

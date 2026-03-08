@@ -23,6 +23,7 @@ import AuthGuard from '@/components/reusable/guard/AuthGuard';
 import AlertModal from '@/components/reusable/modal/AlertModal';
 import ProcurementRequestUpsertModal
   from '@/components/reusable/modal/ProcurementRequestUpsertModal';
+import { AdminPageShimmer } from '@/components/reusable/ui/PageShimmer';
 import FlatInput from '@/components/reusable/ui/FlatInput';
 
 /* ================= TYPES ================= */
@@ -221,12 +222,7 @@ useEffect(() => {
 
       {/* ================= CONTENT ================= */}
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-sm text-slate-500">Loading drafts…</p>
-          </div>
-        </div>
+        <AdminPageShimmer cards={6} showFilters={false} tallCards />
       ) : items.length === 0 ? (
         <div className="flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 rounded-3xl shadow-sm border border-slate-200 p-20 text-center">
           <div className="p-5 bg-white rounded-full shadow-md mb-6">
