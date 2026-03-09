@@ -1,16 +1,18 @@
 import axios from 'axios';
 
+const baseURL =
+  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api',
+  baseURL,
+  withCredentials: true,
 });
 
 /* =========================
    REQUEST INTERCEPTOR
-   Attach Bearer Token
 ========================= */
 api.interceptors.request.use(
   (config) => {
-    // ✅ Prevent SSR crash (Next.js)
     if (typeof window !== 'undefined') {
       const token = sessionStorage.getItem('token');
 
