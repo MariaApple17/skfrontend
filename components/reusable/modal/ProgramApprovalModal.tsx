@@ -1,363 +1,363 @@
 'use client'
 
 import { useState, useEffect } from "react"
-import { CheckCircle, XCircle, User, Check, X } from "lucide-react"
+import { CheckCircle, XCircle, Check, X } from "lucide-react"
 import AlertModal from "@/components/reusable/modal/AlertModal"
 
-interface Approval{
-member:string
-userId:number
-decision:"approved"|"rejected"
-date?:string
-}
-interface Program{
-id:number
-name:string
-description:string
-status:string
-approvals?:Approval[]
-user?:{
-  fullName:string
-}
+interface Approval {
+  member: string
+  userId: number
+  decision: "approved" | "rejected"
+  date?: string
 }
 
-interface Props{
-program?:Program
-currentUserId:number
-onApprove:(id:number)=>Promise<void>
-onReject:(id:number)=>Promise<void>
-onClose?:()=>void
+interface Program {
+  id: number
+  name: string
+  description: string
+  status: string
+  approvals?: Approval[]
+  user?: {
+    fullName: string
+  }
+}
+
+interface Props {
+  program?: Program
+  currentUserId: number
+  onApprove: (id: number) => Promise<void>
+  onReject: (id: number) => Promise<void>
+  onClose?: () => void
 }
 
 export default function ProgramApprovalModal({
-program,
-currentUserId,
-onApprove,
-onReject,
-onClose
-}:Props){
+  program,
+  currentUserId,
+  onApprove,
+  onReject,
+  onClose
+}: Props) {
 
-if(!program) return null
+  if (!program) return null
 
-/* ================= STATES ================= */
+  /* ================= STATES ================= */
 
-const [loading,setLoading] = useState(false)
-const [approvals,setApprovals] = useState<Approval[]>(program.approvals ?? [])
-const [alertOpen,setAlertOpen] = useState(false)
-const [alertMessage,setAlertMessage] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [approvals, setApprovals] = useState<Approval[]>(program.approvals ?? [])
+  const [alertOpen, setAlertOpen] = useState(false)
+  const [alertMessage, setAlertMessage] = useState("")
 
-/* ================= SYNC APPROVALS ================= */
+  /* ================= SYNC APPROVALS ================= */
 
-useEffect(()=>{
-setApprovals(program.approvals ?? [])
-},[program])
+  useEffect(() => {
+    setApprovals(program.approvals ?? [])
+  }, [program])
 
-/* ================= USER VOTE ================= */
+  /* ================= USER VOTE ================= */
 
-const userVote = approvals.find(
-a => Number(a.userId) === Number(currentUserId)
-)
+  const userVote = approvals.find(
+    a => Number(a.userId) === Number(currentUserId)
+  )
 
-const alreadyVoted = Boolean(userVote)
+  const alreadyVoted = Boolean(userVote)
 
-/* ================= APPROVAL COUNT ================= */
+  /* ================= APPROVAL COUNT ================= */
 
-const approvalCount = approvals.filter(
-a => a.decision === "approved"
-).length
+  const approvalCount = approvals.filter(
+    a => a.decision === "approved"
+  ).length
 
-/* council members (change if needed) */
+  const totalCouncil = 7
+  const majority = Math.floor(totalCouncil / 2) + 1
 
-const totalCouncil = 7
-const majority = Math.floor(totalCouncil / 2) + 1
+  /* ================= COMPUTED STATUS ================= */
 
-/* ================= COMPUTED STATUS ================= */
+  let computedStatus = "Pending Approval"
 
-let computedStatus = "Pending Approval"
+  if (approvalCount >= majority) {
+    computedStatus = "Approved"
+  }
 
-if(approvalCount >= majority){
-computedStatus = "Approved"
-}
+  if (program.status === "REJECTED") {
+    computedStatus = "Rejected"
+  }
 
-if(program.status === "REJECTED"){
-computedStatus = "Rejected"
-}
+  const approvalsNeeded = Math.max(0, majority - approvalCount)
 
-const approvalsNeeded = Math.max(0, majority - approvalCount)
+  /* ================= APPROVE ================= */
 
-/* ================= APPROVE ================= */
+  const handleApprove = async () => {
 
-const handleApprove = async()=>{
+    if (alreadyVoted) {
+      setAlertMessage(`You already voted: ${userVote?.decision?.toUpperCase()}`)
+      setAlertOpen(true)
+      return
+    }
 
-if(alreadyVoted){
-setAlertMessage(`You already voted: ${userVote?.decision?.toUpperCase()}`)
-setAlertOpen(true)
-return
-}
+    if (loading) return
 
-if(loading) return
+    try {
 
-try{
+      setLoading(true)
 
-setLoading(true)
+      await onApprove(program.id)
 
-await onApprove(program.id)
+      setApprovals(prev => [
+        ...prev,
+        {
+          member: "You",
+          userId: currentUserId,
+          decision: "approved",
+          date: new Date().toISOString()
+        }
+      ])
 
-setApprovals(prev=>[
-...prev,
-{
-member:"You",
-userId:currentUserId,
-decision:"approved",
-date:new Date().toISOString()
-}
-])
+    } catch (error: any) {
 
-}catch(error:any){
+      const message =
+        error?.response?.data?.message ||
+        "Failed to approve program."
 
-const message =
-error?.response?.data?.message ||
-"Failed to approve program."
+      setAlertMessage(message)
+      setAlertOpen(true)
 
-setAlertMessage(message)
-setAlertOpen(true)
+    } finally {
+      setLoading(false)
+    }
+  }
 
-}finally{
-setLoading(false)
-}
+  /* ================= REJECT ================= */
 
-}
+  const handleReject = async () => {
 
-/* ================= REJECT ================= */
+    if (alreadyVoted) {
+      setAlertMessage(`You already voted: ${userVote?.decision?.toUpperCase()}`)
+      setAlertOpen(true)
+      return
+    }
 
-const handleReject = async()=>{
+    if (loading) return
 
-if(alreadyVoted){
-setAlertMessage(`You already voted: ${userVote?.decision?.toUpperCase()}`)
-setAlertOpen(true)
-return
-}
+    try {
 
-if(loading) return
+      setLoading(true)
 
-try{
+      await onReject(program.id)
 
-setLoading(true)
+      setApprovals(prev => [
+        ...prev,
+        {
+          member: "You",
+          userId: currentUserId,
+          decision: "rejected",
+          date: new Date().toISOString()
+        }
+      ])
 
-await onReject(program.id)
+    } catch (error: any) {
 
-setApprovals(prev=>[
-...prev,
-{
-member:"You",
-userId:currentUserId,
-decision:"rejected",
-date:new Date().toISOString()
-}
-])
+      const message =
+        error?.response?.data?.message ||
+        "Failed to reject program."
 
-}catch(error:any){
+      setAlertMessage(message)
+      setAlertOpen(true)
 
-const message =
-error?.response?.data?.message ||
-"Failed to reject program."
+    } finally {
+      setLoading(false)
+    }
+  }
 
-setAlertMessage(message)
-setAlertOpen(true)
+  /* ================= UI ================= */
 
-}finally{
-setLoading(false)
-}
+  return (
 
-}
+    <>
 
-/* ================= UI ================= */
+      <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 backdrop-blur-sm">
 
-return(
+        <div className="w-[520px] bg-white rounded-2xl shadow-2xl overflow-hidden relative">
 
-<>
+          {/* CLOSE BUTTON */}
 
-<div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
+            >
+              ✕
+            </button>
+          )}
 
-<div className="w-[520px] bg-white rounded-2xl shadow-2xl overflow-hidden relative">
+          {/* HEADER */}
 
-{/* CLOSE */}
+          <div className="bg-blue-800 text-white text-center py-5 text-xl font-semibold">
+            Program Approval
+          </div>
 
-{onClose && (
-<button
-onClick={onClose}
-className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
->
-✕
-</button>
-)}
+          <div className="p-6">
 
-{/* HEADER */}
+            <h2 className="text-xl font-semibold text-slate-800 mb-4">
+              {program.name}
+            </h2>
 
-<div className="bg-blue-800 text-white text-center py-5 text-xl font-semibold">
-Program Approval
-</div>
+            <p className="text-sm mb-1">
+              <span className="font-medium text-slate-600">Proposed By:</span>{" "}
+              {program.user?.fullName || "Unknown"}
+            </p>
 
-<div className="p-6">
+            <p className="text-sm text-slate-600 mb-4">
+              {program.description}
+            </p>
 
-<h2 className="text-xl font-semibold text-slate-800 mb-4">
-{program.name}
-</h2>
+            {/* STATUS */}
 
-<p className="text-sm mb-1">
-<span className="font-medium text-slate-600">Proposed By:</span> {program.user?.fullName}
-</p>
+            <div className="flex items-center gap-2 font-medium mb-5">
 
+              <span className={`w-2 h-2 rounded-full ${
+                computedStatus === "Approved"
+                  ? "bg-green-500"
+                  : computedStatus === "Rejected"
+                  ? "bg-red-500"
+                  : "bg-orange-500"
+              }`}></span>
 
-<p className="text-sm text-slate-600 mb-4">
-{program.description}
-</p>
+              Status: {computedStatus}
 
-{/* STATUS */}
+            </div>
 
-<div className="flex items-center gap-2 font-medium mb-5">
+            {/* ================= TABLE ================= */}
 
-<span className={`w-2 h-2 rounded-full ${
-computedStatus === "Approved"
-? "bg-green-500"
-: computedStatus === "Rejected"
-? "bg-red-500"
-: "bg-orange-500"
-}`}></span>
+            <div className="border rounded-xl overflow-hidden mb-5">
 
-Status: {computedStatus}
+              <div className="bg-gray-100 px-4 py-2 text-sm font-semibold">
+                Council Members' Decisions
+              </div>
 
-</div>
+              <table className="w-full text-sm">
 
-{/* ================= TABLE ================= */}
+                <thead className="text-gray-500">
+                  <tr className="border-b">
+                    <th className="text-left px-4 py-2">Member</th>
+                    <th className="text-left px-4 py-2">Decision</th>
+                    <th className="text-left px-4 py-2">Date</th>
+                  </tr>
+                </thead>
 
-<div className="border rounded-xl overflow-hidden mb-5">
+                <tbody>
 
-<div className="bg-gray-100 px-4 py-2 text-sm font-semibold">
-Council Members' Decisions
-</div>
+                  {approvals.length === 0 && (
+                    <tr>
+                      <td colSpan={3} className="text-center py-4 text-gray-400">
+                        No votes yet
+                      </td>
+                    </tr>
+                  )}
 
-<table className="w-full text-sm">
+                  {approvals.map((vote, i) => (
+                    <tr key={i} className="border-b">
 
-<thead className="text-gray-500">
-<tr className="border-b">
-<th className="text-left px-4 py-2">Member</th>
-<th className="text-left px-4 py-2">Decision</th>
-<th className="text-left px-4 py-2">Date</th>
-</tr>
-</thead>
+                      <td className="px-4 py-2">
+                        {vote.member}
+                      </td>
 
-<tbody>
+                      <td className="px-4 py-2">
 
-{approvals.length === 0 && (
-<tr>
-<td colSpan={3} className="text-center py-4 text-gray-400">
-No votes yet
-</td>
-</tr>
-)}
+                        {vote.decision === "approved" && (
+                          <span className="flex items-center gap-1 text-green-600 font-medium">
+                            <CheckCircle size={16}/> Approved
+                          </span>
+                        )}
 
-{approvals.map((vote,i)=>(
-<tr key={i} className="border-b">
+                        {vote.decision === "rejected" && (
+                          <span className="flex items-center gap-1 text-red-600 font-medium">
+                            <XCircle size={16}/> Rejected
+                          </span>
+                        )}
 
-<td className="px-4 py-2">
-{vote.member}
-</td>
+                      </td>
 
-<td className="px-4 py-2">
+                      <td className="px-4 py-2">
+                        {vote.date
+                          ? new Date(vote.date).toLocaleDateString()
+                          : "-"}
+                      </td>
 
-{vote.decision === "approved" && (
-<span className="flex items-center gap-1 text-green-600 font-medium">
-<CheckCircle size={16}/> Approved
-</span>
-)}
+                    </tr>
+                  ))}
 
-{vote.decision === "rejected" && (
-<span className="flex items-center gap-1 text-red-600 font-medium">
-<XCircle size={16}/> Rejected
-</span>
-)}
+                </tbody>
 
-</td>
+              </table>
 
-<td className="px-4 py-2">
-{vote.date ? new Date(vote.date).toLocaleDateString() : "-"}
-</td>
+            </div>
 
-</tr>
-))}
+            {/* ================= BUTTONS ================= */}
 
-</tbody>
+            <div className="flex gap-4 justify-center mb-4">
 
-</table>
+              <button
+                disabled={loading || alreadyVoted || computedStatus === "Approved"}
+                onClick={handleApprove}
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-40 text-white px-6 py-3 rounded-xl shadow"
+              >
+                <Check size={18}/> Approve
+              </button>
 
-</div>
+              <button
+                disabled={loading || alreadyVoted || computedStatus === "Approved"}
+                onClick={handleReject}
+                className="flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white px-6 py-3 rounded-xl shadow"
+              >
+                <X size={18}/> Reject
+              </button>
 
-{/* ================= BUTTONS ================= */}
+            </div>
 
-<div className="flex gap-4 justify-center mb-4">
+            {/* USER MESSAGE */}
 
-<button
-disabled={loading || alreadyVoted || computedStatus === "Approved"}
-onClick={handleApprove}
-className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-40 text-white px-6 py-3 rounded-xl shadow"
->
-<Check size={18}/> Approve
-</button>
+            {alreadyVoted && (
+              <p className="text-center text-sm text-gray-500 mb-4">
+                You already voted:
+                <span className="font-semibold ml-1">
+                  {userVote?.decision === "approved" ? "Approved" : "Rejected"}
+                </span>
+              </p>
+            )}
 
-<button
-disabled={loading || alreadyVoted || computedStatus === "Approved"}
-onClick={handleReject}
-className="flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white px-6 py-3 rounded-xl shadow"
->
-<X size={18}/> Reject
-</button>
+            <div className="text-center text-sm text-gray-500">
 
-</div>
+              <p>Awaiting Approval from Council Members...</p>
 
-{/* USER MESSAGE */}
+              <p className="font-semibold mt-1">
+                {approvalsNeeded} Approvals Needed to Proceed
+              </p>
 
-{alreadyVoted && (
-<p className="text-center text-sm text-gray-500 mb-4">
-You already voted:
-<span className="font-semibold ml-1">
-{userVote?.decision === "approved" ? "Approved" : "Rejected"}
-</span>
-</p>
-)}
+            </div>
 
-<div className="text-center text-sm text-gray-500">
+          </div>
 
-<p>Awaiting Approval from Council Members...</p>
+        </div>
 
-<p className="font-semibold mt-1">
-{approvalsNeeded} Approvals Needed to Proceed
-</p>
+      </div>
 
-</div>
+      {/* ================= ALERT MODAL ================= */}
 
-</div>
-</div>
-</div>
+      <div className="z-[100]">
 
-{/* ================= ALERT MODAL ================= */}
+        <AlertModal
+          open={alertOpen}
+          type="warning"
+          title="Vote Already Recorded"
+          message={alertMessage}
+          confirmText="OK"
+          showCancel={false}
+          onClose={() => setAlertOpen(false)}
+        />
 
-<div className="z-[100]">
+      </div>
 
-<AlertModal
-open={alertOpen}
-type="warning"
-title="Vote Already Recorded"
-message={alertMessage}
-confirmText="OK"
-showCancel={false}
-onClose={()=>setAlertOpen(false)}
-/>
+    </>
 
-</div>
-
-</>
-
-)
-
+  )
 }
