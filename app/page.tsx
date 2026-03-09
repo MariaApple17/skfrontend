@@ -814,7 +814,7 @@ backgroundSize: "60px 60px"
   className="w-full h-full object-contain"
 />
               </div>
-              <p className="text-[13px] font-semibold text-slate-700 truncate max-w-[200px]">{sp?.systemName ?? 'SK Transparency'}</p>
+              <p className="text-[13px] font-semibold text-slate-700 truncate max-w-[200px]">{sp?.systemName ?? 'SK360'}</p>
             </div>
             <p className="mono text-[10px] text-slate-400 order-last sm:order-none text-center">
               © {new Date().getFullYear()} {sp?.systemName ?? 'SK Barangay'}{fy?.year ? ` · FY ${fy.year}` : ''} · Open Government Initiative
