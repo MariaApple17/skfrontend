@@ -203,7 +203,7 @@ export default function ProgramApprovalModal({
 
             <p className="text-sm mb-1">
               <span className="font-medium text-slate-600">Proposed By:</span>{" "}
-              {program.user?.fullName || "Unknown"}
+              {program.user?.fullName}
             </p>
 
             <p className="text-sm text-slate-600 mb-4">
