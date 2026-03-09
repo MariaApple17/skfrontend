@@ -1,18 +1,15 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-
 import {
   Calendar,
   Clock,
   Image as ImageIcon,
-  Layers,
   Pencil,
   Plus,
   Search,
   Sparkles,
-  Trash2,
-  Upload
+  Trash2
 } from 'lucide-react';
 
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -26,25 +23,25 @@ import FlatInput from '@/components/reusable/ui/FlatInput';
 /* ================= TYPES ================= */
 
 interface ProgramDocument{
-id:number
-imageUrl:string
-title:string
-uploadedBy:string
-createdAt:string
+  id:number
+  imageUrl:string
+  title?:string
+  uploadedBy?:string
+  createdAt:string
 }
 
 interface Program{
-id:number
-code:string
-name:string
-description?:string | null
-committeeInCharge:string
-beneficiaries:string
-startDate?:string
-endDate?:string
-isActive:boolean
-approvalStatus:string
-documents:ProgramDocument[]
+  id:number
+  code:string
+  name:string
+  description?:string | null
+  committeeInCharge:string
+  beneficiaries:string
+  startDate?:string
+  endDate?:string
+  isActive:boolean
+  approvalStatus:string
+  documents?:ProgramDocument[]
 }
 
 /* ================= STATUS ================= */
@@ -65,24 +62,16 @@ endDate?:string
 
 const status = approvalStatus?.toLowerCase()
 
-if(status==="draft" || status==="submitted")
-return "pending"
-
-if(status==="rejected")
-return "rejected"
+if(status==="draft" || status==="submitted") return "pending"
+if(status==="rejected") return "rejected"
 
 const now = new Date()
 const start = startDate ? new Date(startDate) : null
 const end = endDate ? new Date(endDate) : null
 
-if(start && now < start)
-return "upcoming"
-
-if(start && end && now>=start && now<=end)
-return "ongoing"
-
-if(end && now > end)
-return "completed"
+if(start && now < start) return "upcoming"
+if(start && end && now>=start && now<=end) return "ongoing"
+if(end && now > end) return "completed"
 
 return "no-dates"
 }
@@ -170,13 +159,15 @@ return(
 
 }
 
-/* ================= CAROUSEL ================= */
+/* ================= IMAGE CAROUSEL ================= */
 
-function ImageCarousel({documents,programName}:any){
+function ImageCarousel({documents = [], programName}:{documents:ProgramDocument[],programName:string}){
 
 const [index,setIndex]=useState(0)
 
 useEffect(()=>{
+
+setIndex(0)
 
 if(documents.length<=1) return
 
@@ -207,7 +198,7 @@ className="flex transition-transform duration-500 h-full"
 style={{transform:`translateX(-${index*100}%)`}}
 >
 
-{documents.map((doc:any)=>(
+{documents.map(doc=>(
 <img
 key={doc.id}
 src={doc.imageUrl}
@@ -239,12 +230,7 @@ const [loading,setLoading]=useState(true)
 const [modalOpen,setModalOpen]=useState(false)
 const [editId,setEditId]=useState<number|null>(null)
 
-const [uploadingId,setUploadingId]=useState<number|null>(null)
-const [togglingId,setTogglingId]=useState<number|null>(null)
-
-const fileInputRefs = useRef<{[key:number]:HTMLInputElement|null}>({})
-
-/* ================= FETCH ================= */
+/* ================= FETCH PROGRAMS ================= */
 
 const fetchPrograms = async()=>{
 
@@ -253,10 +239,23 @@ setLoading(true)
 try{
 
 const res = await api.get('/programs',{params:{q}})
-setPrograms(res.data?.data ?? [])
+
+const safePrograms = (res?.data?.data ?? []).map((p:any)=>({
+...p,
+documents:Array.isArray(p.documents) ? p.documents : []
+}))
+
+setPrograms(safePrograms)
+
+}catch(err){
+
+console.error("Failed to fetch programs",err)
+setPrograms([])
 
 }finally{
+
 setLoading(false)
+
 }
 
 }
@@ -265,68 +264,7 @@ useEffect(()=>{
 fetchPrograms()
 },[q])
 
-/* ================= TOGGLE ACTIVE ================= */
-
-const toggleStatus = async(id:number)=>{
-
-if(togglingId) return
-
-setTogglingId(id)
-
-setPrograms(prev =>
-prev.map(p =>
-p.id===id ? {...p,isActive:!p.isActive} : p
-)
-)
-
-try{
-
-await api.patch(`/programs/toggle-status/${id}`)
-
-}catch{
-
-setPrograms(prev =>
-prev.map(p =>
-p.id===id ? {...p,isActive:!p.isActive} : p
-)
-)
-
-}finally{
-setTogglingId(null)
-}
-
-}
-
-/* ================= UPLOAD ================= */
-
-const handleUploadDocuments = async(programId:number,files:FileList|null)=>{
-
-if(!files || files.length===0) return
-
-setUploadingId(programId)
-
-try{
-
-const formData = new FormData()
-
-Array.from(files).forEach(file=>{
-formData.append("documents",file)
-})
-
-await api.post(`/programs/${programId}/documents`,formData)
-
-fetchPrograms()
-
-}finally{
-
-setUploadingId(null)
-
-if(fileInputRefs.current[programId])
-fileInputRefs.current[programId]!.value=""
-
-}
-
-}
+/* ================= UI ================= */
 
 return(
 
@@ -361,7 +299,10 @@ Create Program
 label="Search"
 icon={Search}
 value={q}
-onChange={(e)=>router.push(`?q=${e.target.value}`)}
+onChange={(e)=>{
+const value = e.target.value
+router.push(`?q=${value}`)
+}}
 />
 
 </div>
@@ -389,7 +330,7 @@ return(
 <div key={p.id} className="bg-white rounded-3xl shadow-lg overflow-hidden">
 
 <ImageCarousel
-documents={p.documents}
+documents={p.documents ?? []}
 programName={p.name}
 />
 
@@ -402,8 +343,12 @@ programName={p.name}
 <p className="text-xs text-slate-500">{p.code}</p>
 </div>
 
-<span className={`text-xs px-3 py-1 rounded-full ${p.isActive?'bg-green-100 text-green-700':'bg-gray-200 text-gray-600'}`}>
-{p.isActive?"ACTIVE":"INACTIVE"}
+<span className={`text-xs px-3 py-1 rounded-full ${
+p.isActive
+? 'bg-green-100 text-green-700'
+: 'bg-gray-200 text-gray-600'
+}`}>
+{p.isActive ? "ACTIVE" : "INACTIVE"}
 </span>
 
 </div>
@@ -413,60 +358,6 @@ programName={p.name}
 {p.description && (
 <p className="text-sm text-slate-600">{p.description}</p>
 )}
-
-</div>
-
-<div className="flex items-center justify-between px-5 py-4 bg-slate-50">
-
-{/* ACTIVE TOGGLE */}
-
-<button
-disabled={togglingId===p.id}
-onClick={()=>toggleStatus(p.id)}
-className={`relative h-6 w-11 rounded-full ${p.isActive?'bg-blue-600':'bg-slate-300'} ${togglingId===p.id?'opacity-60':''}`}
->
-<span
-className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${p.isActive?'translate-x-5':''}`}
-/>
-</button>
-
-<div className="flex items-center gap-2">
-
-{/* UPLOAD ONLY WHEN COMPLETED */}
-
-{programStatus==="completed" && (
-
-<>
-
-<button
-disabled={uploadingId===p.id}
-onClick={()=>fileInputRefs.current[p.id]?.click()}
-className="p-2 rounded-lg text-indigo-600 hover:bg-indigo-600/10"
->
-<Upload size={16}/>
-</button>
-
-<input
-ref={(el)=>{fileInputRefs.current[p.id]=el}}
-type="file"
-accept="image/*"
-multiple
-className="hidden"
-onChange={(e)=>handleUploadDocuments(p.id,e.target.files)}
-/>
-
-</>
-
-)}
-
-<button
-onClick={()=>{setEditId(p.id);setModalOpen(true)}}
-className="p-2 text-blue-900"
->
-<Pencil size={16}/>
-</button>
-
-</div>
 
 </div>
 

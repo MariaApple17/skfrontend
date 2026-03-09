@@ -38,9 +38,22 @@ interface ProgramPayload {
   isActive: boolean
 }
 
+/* ================= FORM TYPE ================= */
+
+interface ProgramForm {
+  code: string
+  name: string
+  description: string
+  committeeInCharge: string
+  beneficiaries: string
+  startDate: string
+  endDate: string
+  isActive: boolean
+}
+
 /* ================= EMPTY FORM ================= */
 
-const EMPTY_FORM = {
+const EMPTY_FORM: ProgramForm = {
   code: '',
   name: '',
   description: '',
@@ -60,7 +73,7 @@ export default function ProgramUpsertModal({
 
   const isEdit = Boolean(programId)
 
-  const [form, setForm] = useState(EMPTY_FORM)
+  const [form, setForm] = useState<ProgramForm>(EMPTY_FORM)
   const [loading, setLoading] = useState(false)
 
   const [alert, setAlert] = useState({
@@ -79,6 +92,7 @@ export default function ProgramUpsertModal({
   /* ================= LOAD PROGRAM ================= */
 
   useEffect(() => {
+
     if (!open) return
 
     resetAll()
@@ -86,7 +100,9 @@ export default function ProgramUpsertModal({
     if (!programId) return
 
     const loadProgram = async () => {
+
       try {
+
         const res = await api.get(`/programs/${programId}`)
         const d: Program = res.data.data
 
@@ -100,24 +116,29 @@ export default function ProgramUpsertModal({
           endDate: d.endDate?.slice(0, 10) ?? '',
           isActive: d.isActive ?? false,
         })
+
       } catch {
+
         setAlert({
           open: true,
           type: 'error',
           message: 'Failed to load program data.',
         })
+
       }
+
     }
 
     loadProgram()
+
   }, [open, programId])
 
   /* ================= VALIDATION ================= */
 
-  const invalidDate: boolean =
-  !!form.startDate &&
-  !!form.endDate &&
-  new Date(form.endDate) < new Date(form.startDate);
+  const invalidDate =
+    !!form.startDate &&
+    !!form.endDate &&
+    new Date(form.endDate) < new Date(form.startDate)
 
   const isInvalid =
     !form.name ||

@@ -207,7 +207,7 @@ export default function ProgramApprovalPage(){
 
             <p className="text-xs text-gray-500 flex items-center gap-1">
               <User size={14}/>
-              {p.user?.fullName || "Unknown"}
+              {p.user?.fullName || "SK Secretary"}
             </p>
 
             {/* DESCRIPTION */}
@@ -259,7 +259,7 @@ export default function ProgramApprovalPage(){
           description:selectedProgram.description,
           status:selectedProgram.approvalStatus,
           approvals:selectedProgram.approvals ?? [],
-          user:selectedProgram.user ?? { fullName:"Unknown" }
+          user:selectedProgram.user ?? { fullName:"SK Secretary" }
 
         }}
 

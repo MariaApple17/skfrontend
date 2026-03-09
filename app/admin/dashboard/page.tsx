@@ -38,7 +38,7 @@ export default function DashboardPage() {
   const [fiscalYears, setFiscalYears] = useState<any[]>([]);
   const [selectedFy, setSelectedFy] = useState<'ACTIVE' | 'ALL' | number>('ACTIVE');
   const [error, setError] = useState<string | null>(null);
-
+    const [isOffline, setIsOffline] = useState(false);
   /* ================= FETCH CURRENT USER ================= */
   useEffect(() => {
     api.get('/auth/me')
@@ -46,7 +46,25 @@ export default function DashboardPage() {
       .catch(() => setError('Failed to load user'));
   }, []);
 
+
+
+  useEffect(() => {
+  const updateStatus = () => {
+    setIsOffline(!navigator.onLine);
+  };
+
+  updateStatus();
+
+  window.addEventListener("online", updateStatus);
+  window.addEventListener("offline", updateStatus);
+
+  return () => {
+    window.removeEventListener("online", updateStatus);
+    window.removeEventListener("offline", updateStatus);
+  };
+}, []);
   /* ================= FETCH FISCAL YEARS ================= */
+
   useEffect(() => {
     api.get('/fiscal-years')
       .then(res => {
