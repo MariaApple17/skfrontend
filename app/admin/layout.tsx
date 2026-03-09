@@ -126,8 +126,12 @@ export default function DashboardLayout({
 
   }, [])
 
-  const hasPermission = (permission?: string) =>
-    !permission || permissions.includes(permission)
+  /* PERMISSION CHECK */
+
+  const hasPermission = (permission?: string) => {
+    if (!permission) return true
+    return permissions.includes(permission)
+  }
 
   /* MENU */
 
@@ -143,81 +147,190 @@ export default function DashboardLayout({
     {
       label: 'Budget Preparation',
       icon: Wallet,
+      permission: 'BUDGET_VIEW',
       children: [
-        { label: 'Budget Allocation', href: '/admin/budget-preparation/allocation' },
-        { label: 'Total Budget Management', href: '/admin/budget-preparation/total' }
+        {
+          label: 'Budget Allocation',
+          href: '/admin/budget-preparation/allocation',
+          permission: 'BUDGET_ALLOCATION_VIEW'
+        },
+        {
+          label: 'Total Budget Management',
+          href: '/admin/budget-preparation/total',
+          permission: 'BUDGET_TOTAL_VIEW'
+        }
       ]
     },
 
     {
       label: 'Procurement',
       icon: ClipboardList,
+      permission: 'PROCUREMENT_VIEW',
       children: [
-        { label: 'Procurement Request', href: '/admin/procurement/request' },
-        { label: 'Manage Procurement', href: '/admin/procurement/manage' }
+        {
+          label: 'Procurement Request',
+          href: '/admin/procurement/request',
+          permission: 'PROCUREMENT_REQUEST_VIEW'
+        },
+        {
+          label: 'Manage Procurement',
+          href: '/admin/procurement/manage',
+          permission: 'PROCUREMENT_MANAGE_VIEW'
+        }
       ]
     },
 
     {
       label: 'Data Setup',
       icon: Database,
+      permission: 'DATA_SETUP_VIEW',
       children: [
-        { label: 'Manage Classification', href: '/admin/data-setup/classification' },
-        { label: 'Object of Expenditures', href: '/admin/data-setup/object-expenditures' }
+        {
+          label: 'Manage Classification',
+          href: '/admin/data-setup/classification',
+          permission: 'CLASSIFICATION_VIEW'
+        },
+        {
+          label: 'Object of Expenditures',
+          href: '/admin/data-setup/object-expenditures',
+          permission: 'OBJECT_EXPENDITURE_VIEW'
+        }
       ]
     },
 
     {
       label: 'Plantilla of SK',
       href: '/admin/sk-plantilla',
-      icon: Briefcase
+      icon: Briefcase,
+      permission: 'PLANTILLA_VIEW'
     },
 
     {
       label: 'Programs Management',
       icon: FolderKanban,
+      permission: 'PROGRAM_VIEW',
       children: [
-        { label: 'Create Program', href: '/admin/programs' },
-        { label: 'Program Approval', href: '/admin/programs/approval' }
+        {
+          label: 'Create Program',
+          href: '/admin/programs',
+          permission: 'PROGRAM_CREATE'
+        },
+        {
+          label: 'Program Approval',
+          href: '/admin/programs/approval',
+          permission: 'PROGRAM_APPROVAL'
+        }
       ]
     },
 
     {
       label: 'User Management',
       href: '/admin/users',
-      icon: Users
+      icon: Users,
+      permission: 'USER_VIEW'
     },
 
     {
       label: 'Roles & Permissions',
       href: '/admin/roles',
-      icon: Shield
+      icon: Shield,
+      permission: 'ROLE_VIEW'
     },
 
     {
       label: 'System Settings',
       icon: Settings,
+      permission: 'SYSTEM_SETTINGS_VIEW',
       children: [
-        { label: 'Fiscal Year', href: '/admin/system-settings/fiscal-year' },
-        { label: 'System Profile', href: '/admin/system-settings/system-profile' },
-        { label: 'SK Officials', href: '/admin/system-settings/sk-officials' }
+        {
+          label: 'Fiscal Year',
+          href: '/admin/system-settings/fiscal-year',
+          permission: 'FISCAL_YEAR_VIEW'
+        },
+        {
+          label: 'System Profile',
+          href: '/admin/system-settings/system-profile',
+          permission: 'SYSTEM_PROFILE_VIEW'
+        },
+        {
+          label: 'SK Officials',
+          href: '/admin/system-settings/sk-officials',
+          permission: 'SK_OFFICIAL_VIEW'
+        }
       ]
     },
 
     {
       label: 'Reports',
       icon: BarChart3,
+      permission: 'REPORT_VIEW',
       children: [
-        { label: 'Report Data', href: '/admin/reports/data' },
-        { label: 'Procurement Report', href: '/admin/reports/procurement' },
-        { label: 'Accomplishment Report', href: '/admin/reports/accomplishment' },
-        { label: 'Financial Report', href: '/admin/reports/financial' }
+        {
+          label: 'Report Data',
+          href: '/admin/reports/data',
+          permission: 'REPORT_DATA_VIEW'
+        },
+        {
+          label: 'Procurement Report',
+          href: '/admin/reports/procurement',
+          permission: 'REPORT_PROCUREMENT_VIEW'
+        },
+        {
+          label: 'Accomplishment Report',
+          href: '/admin/reports/accomplishment',
+          permission: 'REPORT_ACCOMPLISHMENT_VIEW'
+        },
+        {
+          label: 'Financial Report',
+          href: '/admin/reports/financial',
+          permission: 'REPORT_FINANCIAL_VIEW'
+        }
       ]
     }
 
   ]
 
-  const filteredMenu = MENU
+  /* FILTER MENU BY PERMISSION */
+
+  const filteredMenu: MenuItem[] = MENU
+    .filter((item) => hasPermission(item.permission))
+    .map((item) => {
+
+      if (!item.children) return item
+
+      const filteredChildren = item.children.filter((child) =>
+        hasPermission(child.permission)
+      )
+
+      if (filteredChildren.length === 0) return null
+
+      return {
+        ...item,
+        children: filteredChildren
+      }
+
+    })
+    .filter(Boolean) as MenuItem[]
+
+  /* ROUTE PROTECTION */
+
+  useEffect(() => {
+
+    if (!permissions.length) return
+
+    const allowed = filteredMenu.some((item) =>
+      item.href
+        ? pathname.startsWith(item.href)
+        : item.children?.some((c) => pathname.startsWith(c.href!))
+    )
+
+    if (!allowed) {
+      router.replace('/admin/dashboard')
+    }
+
+  }, [pathname, permissions])
+
+  /* CURRENT PAGE */
 
   const getCurrentPage = () => {
 
@@ -253,14 +366,13 @@ export default function DashboardLayout({
   }
 
   return (
-
     <div className="flex min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-
       {/* SIDEBAR */}
-
       <aside className={`${collapsed ? 'w-20' : 'w-72'} 
       bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900
       text-slate-200 flex flex-col transition-all duration-300`}>
+
+        {/* LOGO AREA */}
 
         <div className="px-5 pt-7 pb-6">
 
@@ -438,8 +550,6 @@ export default function DashboardLayout({
 
       <div className="flex-1 flex flex-col">
 
-        {/* NEW NAVBAR DESIGN */}
-
         <header className="flex items-center justify-between px-10 py-4 bg-white/80 backdrop-blur-xl border-b border-slate-200 shadow-sm">
 
           <div className="flex items-center gap-4">
@@ -492,11 +602,13 @@ export default function DashboardLayout({
         message="Are you sure you want to logout?"
         confirmText="Logout"
         showCancel
-        onConfirm={handleLogout}
+        onConfirm={() => {
+          sessionStorage.clear()
+          router.replace('/login')
+        }}
         onClose={() => setLogoutOpen(false)}
       />
 
     </div>
-
   )
 }
