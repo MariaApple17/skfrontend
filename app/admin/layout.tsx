@@ -219,7 +219,7 @@ export default function DashboardLayout({
           permission: 'PROGRAMS_VIEW',
          },
 
-        { label: 'Program Approval', href: '/admin/approval' },
+        { label: 'Program Approval', href: '/admin/programs/approval' },
         
         
       ],
