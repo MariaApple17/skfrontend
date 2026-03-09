@@ -212,15 +212,24 @@ export default function DashboardLayout({
     },
     {
       label: 'Programs Management',
-      href: '/admin/programs',
       icon: FolderKanban,
-      permission: 'PROGRAMS_VIEW',
+      
+      children: [
+        { label: 'Create Program',  href: '/admin/programs',
+          permission: 'PROGRAMS_VIEW',
+         },
+
+        { label: 'Program Approval', href: '/admin/approval' },
+        
+        
+      ],
     },
     {
       label: 'User Management',
       href: '/admin/users',
       icon: Users,
       permission: 'USERS_VIEW',
+  
     },
     {
       label: 'Roles & Permissions',
