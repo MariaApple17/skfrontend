@@ -337,20 +337,32 @@ export default function DashboardLayout({
                     <span className="text-slate-600 font-medium text-lg">
                       {systemProfile?.systemName?.charAt(0) ?? 'S'}
                     </span>
+                    
                   )}
+                 
                 </div>
               </div>
 
               {/* TEXT */}
               {!collapsed && (
+                
                 <div className="space-y-1 max-w-full animate-slide-in">
+                  
+{systemProfile?.fiscalYear?.year && (
+  <p className="text-xs font-semibold text-blue-600 px-2">
+    Fiscal Year {systemProfile.fiscalYear.year}
+  </p>
+)}
                   <p className="text-sm font-medium text-slate-700 truncate px-2">
                     {systemProfile?.systemName ?? 'System'}
                   </p>
+                  
 
              <p className="text-xs text-slate-400 px-2 leading-relaxed line-clamp-2 break-words">
   {systemProfile?.systemDescription ?? 'Management Platform'}
 </p>
+
+
 
 
                   {systemProfile?.location && (

@@ -157,6 +157,23 @@ const CATEGORY_LABELS: Record<BudgetCategory, string> = {
     (o) => String(o.classificationId) === form.classificationId
   );
 }, [objects, form.classificationId]);
+const upcomingPrograms = useMemo(() => {
+
+  const today = new Date()
+  today.setHours(0,0,0,0)
+
+  return programs.filter((p) => {
+
+    if(!p.startDate) return false
+
+    const start = new Date(p.startDate)
+    start.setHours(0,0,0,0)
+
+    return today < start
+
+  })
+
+}, [programs])
 
   const resetForm = () => {
     setForm(initialForm);
@@ -428,7 +445,6 @@ const handleBudgetLimitChange = async (selectedLimitId: string) => {
     form.category
   );
 };
-
 
   const handleShowAddLimit = () => {
     setShowLimitForm(true);
@@ -759,10 +775,10 @@ const getAvailableBudgetsForNewLimit = () => {
     <FlatSelect
       label="Program"
       value={form.programId}
-      options={programs.map((p) => ({
-        id: p.id,
-        label: `${p.code} - ${p.name}`,
-      }))}
+      options={upcomingPrograms.map((p) => ({
+  id: p.id,
+  label: `${p.code} - ${p.name}`,
+}))}
       onChange={(v) =>
         setForm((f) => ({ ...f, programId: v }))
       }
@@ -1125,3 +1141,13 @@ const getAvailableBudgetsForNewLimit = () => {
 };
 
 export default BudgetAllocationUpsertModal;
+
+
+
+
+
+
+
+
+
+

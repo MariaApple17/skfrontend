@@ -96,8 +96,9 @@ export default function DashboardPage() {
   const isAllMode = data.mode === 'ALL';
 
   const fiscalYear = data.fiscalYear;
-
-  const users = data.users ?? { total: 0 };
+const users = isAllMode
+  ? data.totals?.users ?? { total: 0 }
+  : data.users ?? { total: 0 };
 
   const budget = isAllMode
     ? data.totals

@@ -1,15 +1,15 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Calendar,
   Clock,
   Image as ImageIcon,
-  Pencil,
   Plus,
   Search,
   Sparkles,
-  Trash2
+  Trash2,
+  Upload
 } from 'lucide-react';
 
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -39,7 +39,6 @@ interface Program{
   beneficiaries:string
   startDate?:string
   endDate?:string
-  isActive:boolean
   approvalStatus:string
   documents?:ProgramDocument[]
 }
@@ -52,30 +51,49 @@ type ProgramStatus =
 | "upcoming"
 | "ongoing"
 | "completed"
+| "incomplete"
 | "no-dates"
-
 const getProgramStatus = (
-approvalStatus?:string,
-startDate?:string,
-endDate?:string
-):ProgramStatus => {
+  approvalStatus?: string,
+  startDate?: string,
+  endDate?: string,
+  documents?: ProgramDocument[]
+): ProgramStatus => {
 
-const status = approvalStatus?.toLowerCase()
+  const status = approvalStatus?.toLowerCase()
 
-if(status==="draft" || status==="submitted") return "pending"
-if(status==="rejected") return "rejected"
+  if (status === "draft" || status === "submitted") return "pending"
+  if (status === "rejected") return "rejected"
 
-const now = new Date()
-const start = startDate ? new Date(startDate) : null
-const end = endDate ? new Date(endDate) : null
+  const today = new Date()
+  today.setHours(0,0,0,0)
 
-if(start && now < start) return "upcoming"
-if(start && end && now>=start && now<=end) return "ongoing"
-if(end && now > end) return "completed"
+  const start = startDate ? new Date(startDate) : null
+  const end = endDate ? new Date(endDate) : null
 
-return "no-dates"
+  if (start) start.setHours(0,0,0,0)
+  if (end) end.setHours(0,0,0,0)
+
+  /* UPCOMING */
+  if (start && today < start) {
+    return "upcoming"
+  }
+
+  /* ONGOING */
+  if (start && end && today >= start && today <= end) {
+    return "ongoing"
+  }
+
+  /* FINISHED PROGRAM */
+  if (end && today > end) {
+
+    const hasProof = documents && documents.length > 0
+
+    return hasProof ? "completed" : "incomplete"
+  }
+
+  return "no-dates"
 }
-
 /* ================= STATUS BADGE ================= */
 
 const STATUS_CONFIG={
@@ -123,6 +141,15 @@ bg:"bg-gray-50",
 text:"text-gray-600",
 border:"border-gray-200",
 iconBg:"bg-gray-100"
+},
+
+incomplete:{
+label:"Incomplete",
+icon:Upload,
+bg:"bg-red-50",
+text:"text-red-700",
+border:"border-red-200",
+iconBg:"bg-red-100"
 },
 
 "no-dates":{
@@ -264,13 +291,28 @@ useEffect(()=>{
 fetchPrograms()
 },[q])
 
+/* ================= UPLOAD PROOF ================= */
+
+const uploadProof = async (programId:number,file:File)=>{
+
+const formData = new FormData()
+formData.append("file",file)
+
+await api.post(`/programs/${programId}/upload-proof`,formData,{
+headers:{
+'Content-Type':'multipart/form-data'
+}
+})
+
+fetchPrograms()
+
+}
+
 /* ================= UI ================= */
 
 return(
 
 <>
-
-{/* HEADER */}
 
 <div className="flex justify-between mb-8">
 
@@ -291,8 +333,6 @@ Create Program
 
 </div>
 
-{/* SEARCH */}
-
 <div className="bg-white rounded-3xl p-5 mb-8">
 
 <FlatInput
@@ -307,8 +347,6 @@ router.push(`?q=${value}`)
 
 </div>
 
-{/* GRID */}
-
 {loading ? (
 
 <AdminPageShimmer cards={6} showFilters={false} />
@@ -322,7 +360,8 @@ router.push(`?q=${value}`)
 const programStatus = getProgramStatus(
 p.approvalStatus,
 p.startDate,
-p.endDate
+p.endDate,
+p.documents
 )
 
 return(
@@ -336,27 +375,42 @@ programName={p.name}
 
 <div className="p-5 space-y-3">
 
-<div className="flex justify-between">
-
 <div>
 <h3 className="font-semibold">{p.name}</h3>
 <p className="text-xs text-slate-500">{p.code}</p>
-</div>
-
-<span className={`text-xs px-3 py-1 rounded-full ${
-p.isActive
-? 'bg-green-100 text-green-700'
-: 'bg-gray-200 text-gray-600'
-}`}>
-{p.isActive ? "ACTIVE" : "INACTIVE"}
-</span>
-
 </div>
 
 <StatusBadge status={programStatus}/>
 
 {p.description && (
 <p className="text-sm text-slate-600">{p.description}</p>
+)}
+
+{/* Upload button when incomplete */}
+
+{programStatus === "incomplete" && (
+
+<label className="flex items-center gap-2 mt-3 text-xs bg-red-600 text-white px-3 py-2 rounded-lg cursor-pointer">
+
+<Upload size={14}/>
+Upload Proof
+
+<input
+type="file"
+hidden
+onChange={(e)=>{
+
+const file = e.target.files?.[0]
+
+if(file){
+uploadProof(p.id,file)
+}
+
+}}
+/>
+
+</label>
+
 )}
 
 </div>
