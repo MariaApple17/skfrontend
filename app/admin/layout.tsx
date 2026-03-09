@@ -254,6 +254,8 @@ export default function DashboardLayout({
       children: [
         { label: 'Report Data', href: '/admin/reports/data' },
         { label: 'Procurement Report', href: '/admin/reports/procurement' },
+        { label: 'Accomplisment Report', href: '/admin/reports/accomplishment' },
+        { label: 'Financial Report', href: '/admin/reports/financial' },
       ],
     },
   ];

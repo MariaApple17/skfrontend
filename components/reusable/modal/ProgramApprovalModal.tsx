@@ -10,15 +10,15 @@ userId:number
 decision:"approved"|"rejected"
 date?:string
 }
-
 interface Program{
 id:number
 name:string
-proposedBy:string
-budget:number
 description:string
 status:string
 approvals?:Approval[]
+user?:{
+  fullName:string
+}
 }
 
 interface Props{
@@ -205,12 +205,9 @@ Program Approval
 </h2>
 
 <p className="text-sm mb-1">
-<span className="font-medium text-slate-600">Proposed By:</span> {program.proposedBy}
+<span className="font-medium text-slate-600">Proposed By:</span> {program.user?.fullName}
 </p>
 
-<p className="text-sm mb-3">
-<span className="font-medium text-slate-600">Budget:</span> ₱{program.budget.toLocaleString()}
-</p>
 
 <p className="text-sm text-slate-600 mb-4">
 {program.description}
