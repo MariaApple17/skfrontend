@@ -134,6 +134,9 @@ const [fiscalYears, setFiscalYears] = useState<any[]>([]);
         },
       });
       setItems(res.data?.data ?? []);
+    } catch (error: unknown) {
+      console.error('Failed to fetch procurement requests', error);
+      setItems([]);
     } finally {
       setLoading(false);
     }

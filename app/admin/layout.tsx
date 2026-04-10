@@ -163,6 +163,20 @@ export default function DashboardLayout({
       permission: 'DASHBOARD_VIEW',
     },
     {
+      label: 'Programs Management',
+      icon: FolderKanban,
+      
+      children: [
+        { label: 'Create Program',  href: '/admin/programs',
+          permission: 'PROGRAMS_VIEW',
+         },
+
+        { label: 'Program Approval', href: '/admin/programs/approval' },
+        
+        
+      ],
+    },
+    {
       label: 'Budget Preparation',
       icon: Wallet,
       children: [
@@ -194,6 +208,17 @@ export default function DashboardLayout({
         },
       ],
     },
+     {
+      label: 'Reports',
+      icon: BarChart3,
+      permission: 'REPORTS_VIEW',
+      children: [
+        { label: 'Report Data', href: '/admin/reports/data' },
+        { label: 'Procurement Report', href: '/admin/reports/procurement' },
+        { label: 'Accomplisment Report', href: '/admin/reports/accomplishment' },
+        { label: 'SAAOB Report', href: '/admin/reports/financial' },
+      ],
+    },
     {
       label: 'Data Setup',
       icon: Database,
@@ -210,20 +235,7 @@ export default function DashboardLayout({
         },
       ],
     },
-    {
-      label: 'Programs Management',
-      icon: FolderKanban,
-      
-      children: [
-        { label: 'Create Program',  href: '/admin/programs',
-          permission: 'PROGRAMS_VIEW',
-         },
-
-        { label: 'Program Approval', href: '/admin/programs/approval' },
-        
-        
-      ],
-    },
+    
     {
       label: 'User Management',
       href: '/admin/users',
@@ -247,17 +259,7 @@ export default function DashboardLayout({
         { label: 'SK Officials', href: '/admin/system-settings/sk-officials' },
       ],
     },
-    {
-      label: 'Reports',
-      icon: BarChart3,
-      permission: 'REPORTS_VIEW',
-      children: [
-        { label: 'Report Data', href: '/admin/reports/data' },
-        { label: 'Procurement Report', href: '/admin/reports/procurement' },
-        { label: 'Accomplisment Report', href: '/admin/reports/accomplishment' },
-        { label: 'Financial Report', href: '/admin/reports/financial' },
-      ],
-    },
+   
   ];
 
   const filteredMenu = MENU.filter((item) =>

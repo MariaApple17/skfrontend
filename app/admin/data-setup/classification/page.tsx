@@ -3,28 +3,15 @@
 import { useEffect, useState } from 'react';
 import {
   Layers,
-  Pencil,
-  Plus,
-  Trash2,
 } from 'lucide-react';
 
-import api from '@/components/lib/api';
 import AuthGuard from '@/components/reusable/guard/AuthGuard';
-import AlertModal from '@/components/reusable/modal/AlertModal';
-import ClassificationUpsertModal
-  from '@/components/reusable/modal/ClassificationUpsertModal';
-import { AdminPageShimmer } from '@/components/reusable/ui/PageShimmer';
-
-/* ================= TYPES ================= */
-interface BudgetClassification {
-  id: number;
-  code: string;
-  name: string;
-  description: string | null;
-  allowedCategories?: Array<'ADMINISTRATIVE' | 'YOUTH'>;
-  createdAt: string;
-  deletedAt: string | null;
-}
+import {
+  CATEGORY_LABELS,
+  CLASSIFICATIONS,
+  type BudgetCategory,
+  type BudgetClassification,
+} from '@/lib/budget';
 
 /* ================= CONTENT ================= */
 function ClassificationContent() {
@@ -32,53 +19,27 @@ function ClassificationContent() {
   const [loading, setLoading] = useState<boolean>(true);
 
   const [categoryFilter, setCategoryFilter] = useState<
-    '' | 'ADMINISTRATIVE' | 'YOUTH'
+    '' | BudgetCategory
   >('');
-   const CATEGORY_LABELS: Record<'ADMINISTRATIVE' | 'YOUTH', string> = {
-  ADMINISTRATIVE: 'GAP',
-  YOUTH: 'SKYDEP',
-};
-  const [modalOpen, setModalOpen] = useState<boolean>(false);
-  const [editId, setEditId] = useState<number | null>(null);
-
-  const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [alertOpen, setAlertOpen] = useState<boolean>(false);
 
   /* ================= FETCH ================= */
   const fetchClassifications = async () => {
     setLoading(true);
-    try {
-      const res = await api.get('/classifications', {
-        params: {
-          category: categoryFilter || undefined,
-        },
-      });
 
-      setItems(res.data?.data ?? []);
-    } catch (err) {
-      console.error('Failed to fetch classifications', err);
-    } finally {
-      setLoading(false);
-    }
+    // Fixed: consume the shared hardcoded dataset with the shared type.
+    const filtered = categoryFilter
+      ? CLASSIFICATIONS.filter((classification) =>
+          classification.allowedCategories.includes(categoryFilter)
+        )
+      : CLASSIFICATIONS;
+
+    setItems(filtered);
+    setLoading(false);
   };
 
   useEffect(() => {
     fetchClassifications();
   }, [categoryFilter]);
-
-  /* ================= DELETE ================= */
-  const confirmDelete = async () => {
-    if (!deleteId) return;
-
-    try {
-      await api.delete(`/classifications/${deleteId}`);
-      setAlertOpen(false);
-      setDeleteId(null);
-      fetchClassifications();
-    } catch (err) {
-      console.error('Delete failed', err);
-    }
-  };
 
   return (
     <>
@@ -92,17 +53,6 @@ function ClassificationContent() {
             Organize budget allocations by classification
           </p>
         </div>
-
-        <button
-          onClick={() => {
-            setEditId(null);
-            setModalOpen(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-900 text-white text-sm font-medium hover:bg-blue-800 transition"
-        >
-          <Plus size={16} />
-          New Classification
-        </button>
       </div>
 
       {/* ================= FILTER ================= */}
@@ -127,7 +77,9 @@ function ClassificationContent() {
 
       {/* ================= CONTENT ================= */}
       {loading ? (
-        <AdminPageShimmer cards={6} showFilters={false} />
+        <p className="text-sm text-slate-500">
+          Loading classifications…
+        </p>
       ) : items.length === 0 ? (
         /* EMPTY STATE */
         <div className="w-full rounded-2xl bg-white p-12 shadow-lg shadow-slate-200/60 flex flex-col items-center justify-center text-center">
@@ -139,22 +91,9 @@ function ClassificationContent() {
             No Classifications Found
           </h3>
 
-          <p className="text-sm text-slate-500 max-w-md mb-6">
-            Classifications help structure budget limits and
-            expenditure tracking. Create one to begin organizing
-            your budget.
+          <p className="text-sm text-slate-500 max-w-md">
+            No classifications available for the selected filter.
           </p>
-
-          <button
-            onClick={() => {
-              setEditId(null);
-              setModalOpen(true);
-            }}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-900 text-white text-sm font-medium hover:bg-blue-800 transition"
-          >
-            <Plus size={16} />
-            Create First Classification
-          </button>
         </div>
       ) : (
         /* GRID */
@@ -180,20 +119,6 @@ function ClassificationContent() {
                     </p>
                   </div>
                 </div>
-
-                {/* ACTIONS */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setEditId(cls.id);
-                      setModalOpen(true);
-                    }}
-                    className="p-2 rounded-lg text-blue-900 hover:bg-blue-900/10 transition"
-                  >
-                    <Pencil size={16} />
-                  </button>
-
-                </div>
               </div>
 
               {/* DESCRIPTION */}
@@ -205,57 +130,25 @@ function ClassificationContent() {
 
               {/* CATEGORY BADGES */}
               <div className="mb-3 flex flex-wrap gap-2">
-                {(cls.allowedCategories ?? []).map((category) => (
+                {cls.allowedCategories.map((category) => (
                   <span
                     key={category}
                     className="rounded-full bg-blue-50 text-blue-700 text-xs font-medium px-2 py-1"
                   >
-                   {CATEGORY_LABELS[category]}
+                    {CATEGORY_LABELS[category]}
                   </span>
                 ))}
 
-                {(cls.allowedCategories ?? []).length === 0 && (
+                {cls.allowedCategories.length === 0 && (
                   <span className="rounded-full bg-slate-100 text-slate-500 text-xs font-medium px-2 py-1">
                     No category restriction
                   </span>
                 )}
               </div>
-
-              {/* META */}
-              <p className="text-xs text-slate-500">
-                Created:{' '}
-                {new Date(cls.createdAt).toLocaleDateString()}
-              </p>
             </div>
           ))}
         </div>
       )}
-
-      {/* ================= UPSERT MODAL ================= */}
-      <ClassificationUpsertModal
-        open={modalOpen}
-        classificationId={editId}
-        onClose={() => {
-          setModalOpen(false);
-          setEditId(null);
-        }}
-        onSuccess={fetchClassifications}
-      />
-
-      {/* ================= DELETE CONFIRM ================= */}
-      <AlertModal
-        open={alertOpen}
-        type="warning"
-        title="Delete Classification"
-        message="This classification will be archived and removed from active use. Continue?"
-        confirmText="Delete"
-        showCancel
-        onConfirm={confirmDelete}
-        onClose={() => {
-          setAlertOpen(false);
-          setDeleteId(null);
-        }}
-      />
     </>
   );
 }

@@ -6,6 +6,7 @@ import AlertModal from "@/components/reusable/modal/AlertModal"
 
 interface Approval {
   member: string
+  approverId?: number
   userId: number
   decision: "approved" | "rejected"
   date?: string
@@ -16,6 +17,8 @@ interface Program {
   name: string
   description: string
   status: string
+  approvalsCount?: number
+  approvalsRequired?: number
   approvals?: Approval[]
   user?: {
     fullName: string
@@ -37,52 +40,61 @@ export default function ProgramApprovalModal({
   onReject,
   onClose
 }: Props) {
-
-  if (!program) return null
-
   /* ================= STATES ================= */
 
   const [loading, setLoading] = useState(false)
-  const [approvals, setApprovals] = useState<Approval[]>(program.approvals ?? [])
+  const [approvals, setApprovals] = useState<Approval[]>(program?.approvals ?? [])
   const [alertOpen, setAlertOpen] = useState(false)
   const [alertMessage, setAlertMessage] = useState("")
 
   /* ================= SYNC APPROVALS ================= */
 
   useEffect(() => {
-    setApprovals(program.approvals ?? [])
+    setApprovals(program?.approvals ?? [])
   }, [program])
+
+  if (!program) return null
 
   /* ================= USER VOTE ================= */
 
   const userVote = approvals.find(
-    a => Number(a.userId) === Number(currentUserId)
+    a =>
+      Number(a.userId ?? a.approverId) ===
+      Number(currentUserId)
   )
 
   const alreadyVoted = Boolean(userVote)
 
   /* ================= APPROVAL COUNT ================= */
 
-  const approvalCount = approvals.filter(
-    a => a.decision === "approved"
+  const approvalCount = Math.max(
+    program.approvalsCount ?? 0,
+    approvals.filter(a => a.decision === "approved").length
+  )
+  const rejectionCount = approvals.filter(
+    a => a.decision === "rejected"
   ).length
-
-  const totalCouncil = 7
-  const majority = Math.floor(totalCouncil / 2) + 1
+  const approvalsRequired = program.approvalsRequired ?? 4
 
   /* ================= COMPUTED STATUS ================= */
 
   let computedStatus = "Pending Approval"
 
-  if (approvalCount >= majority) {
+  if (
+    program.status === "APPROVED" ||
+    approvalCount >= approvalsRequired
+  ) {
     computedStatus = "Approved"
   }
 
-  if (program.status === "REJECTED") {
+  if (program.status === "REJECTED" || rejectionCount > 0) {
     computedStatus = "Rejected"
   }
 
-  const approvalsNeeded = Math.max(0, majority - approvalCount)
+  const approvalsNeeded = Math.max(
+    0,
+    approvalsRequired - approvalCount
+  )
 
   /* ================= APPROVE ================= */
 
@@ -106,6 +118,7 @@ export default function ProgramApprovalModal({
         ...prev,
         {
           member: "You",
+          approverId: currentUserId,
           userId: currentUserId,
           decision: "approved",
           date: new Date().toISOString()
@@ -148,6 +161,7 @@ export default function ProgramApprovalModal({
         ...prev,
         {
           member: "You",
+          approverId: currentUserId,
           userId: currentUserId,
           decision: "rejected",
           date: new Date().toISOString()
@@ -231,7 +245,7 @@ export default function ProgramApprovalModal({
             <div className="border rounded-xl overflow-hidden mb-5">
 
               <div className="bg-gray-100 px-4 py-2 text-sm font-semibold">
-                Council Members' Decisions
+                Council Members&apos; Decisions
               </div>
 
               <table className="w-full text-sm">
@@ -297,7 +311,12 @@ export default function ProgramApprovalModal({
             <div className="flex gap-4 justify-center mb-4">
 
               <button
-                disabled={loading || alreadyVoted || computedStatus === "Approved"}
+                disabled={
+                  loading ||
+                  alreadyVoted ||
+                  computedStatus === "Approved" ||
+                  computedStatus === "Rejected"
+                }
                 onClick={handleApprove}
                 className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-40 text-white px-6 py-3 rounded-xl shadow"
               >
@@ -305,7 +324,12 @@ export default function ProgramApprovalModal({
               </button>
 
               <button
-                disabled={loading || alreadyVoted || computedStatus === "Approved"}
+                disabled={
+                  loading ||
+                  alreadyVoted ||
+                  computedStatus === "Approved" ||
+                  computedStatus === "Rejected"
+                }
                 onClick={handleReject}
                 className="flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white px-6 py-3 rounded-xl shadow"
               >
@@ -330,7 +354,7 @@ export default function ProgramApprovalModal({
               <p>Awaiting Approval from Council Members...</p>
 
               <p className="font-semibold mt-1">
-                {approvalsNeeded} Approvals Needed to Proceed
+                {approvalsNeeded} of {approvalsRequired} approvals needed
               </p>
 
             </div>

@@ -19,8 +19,19 @@ import api from '@/components/lib/api';
 import AlertModal from '@/components/reusable/modal/AlertModal';
 import FlatInput from '@/components/reusable/ui/FlatInput';
 import FlatSelect from '@/components/reusable/ui/FlatSelect';
-
-type BudgetCategory = 'ADMINISTRATIVE' | 'YOUTH';
+import {
+  CATEGORY_LABELS,
+  type BudgetCategory,
+  type BudgetClassification,
+  type ObjectOfExpenditure,
+} from '@/lib/budget';
+import {
+  filterProgramsByProgramCategory,
+  normalizeFundingPrograms,
+  PROGRAM_CATEGORY_OPTIONS,
+  type FundingProgramRecord,
+} from '@/lib/funding/reference';
+import { normalizeProgramApprovalStatus } from '@/lib/programs';
 
 /* ================= TYPES ================= */
 interface BudgetAllocationUpsertModalProps {
@@ -32,20 +43,13 @@ interface BudgetAllocationUpsertModalProps {
 interface FormState {
   budgetId: string;      // for backend
   limitId: string;       // for dropdown display
+  programCategoryId: string;
   programId: string;
   classificationId: string;
   category: '' | BudgetCategory;
   objectOfExpenditureId: string;
   allocatedAmount: string;
 }
-
-interface Classification {
-  id: number;
-  code: string;
-  name: string;
-  allowedCategories?: BudgetCategory[];
-}
-
 interface ClassificationLimit {
   id: number;
   budgetId: number;
@@ -84,15 +88,99 @@ interface RemainingBudget {
   >;
 }
 
+interface BudgetRecord {
+  id: number;
+  fiscalYear?: {
+    year: number;
+  };
+}
+
+interface AllocationRecord {
+  id: number;
+}
+
+type ProgramAllocationStatus =
+  | 'UPCOMING'
+  | 'APPROVED'
+  | 'REJECTED';
+
+const DEFAULT_CATEGORY_OPTIONS: BudgetCategory[] = [
+  'ADMINISTRATIVE',
+  'YOUTH',
+];
+
+const getApiErrorMessage = (
+  error: unknown,
+  fallbackMessage: string
+) => {
+  const response = (error as {
+    response?: { data?: { message?: string } };
+  })?.response;
+
+  return response?.data?.message ?? fallbackMessage;
+};
+
 /* ================= CONSTANTS ================= */
 const initialForm: FormState = {
   budgetId: '',
   limitId: '',
+  programCategoryId: '',
   programId: '',
   classificationId: '',
   category: '',
   objectOfExpenditureId: '',
   allocatedAmount: '',
+};
+
+type BudgetAllocationProgramRecord = FundingProgramRecord & {
+  categoryId: number | null;
+  programCategoryId: number | null;
+  status?: string | null;
+  approvalStatus?: string | null;
+  allocationStatus: ProgramAllocationStatus;
+};
+
+type BudgetAllocationObjectRecord = ObjectOfExpenditure & {
+  classification?: BudgetClassification;
+};
+
+const isProgramUpcomingByDate = (
+  startDate?: string | null
+) => {
+  if (!startDate) {
+    return false;
+  }
+
+  const parsedStartDate = new Date(startDate);
+  if (Number.isNaN(parsedStartDate.getTime())) {
+    return false;
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  parsedStartDate.setHours(0, 0, 0, 0);
+
+  return today < parsedStartDate;
+};
+
+const resolveProgramAllocationStatus = (
+  program: Pick<
+    BudgetAllocationProgramRecord,
+    'approvalStatus' | 'status' | 'startDate'
+  >
+): ProgramAllocationStatus => {
+  const workflowStatus = normalizeProgramApprovalStatus(
+    program.approvalStatus ?? program.status
+  );
+
+  if (
+    workflowStatus === 'UPCOMING' ||
+    isProgramUpcomingByDate(program.startDate)
+  ) {
+    return 'UPCOMING';
+  }
+
+  return workflowStatus;
 };
 
 /* ================= COMPONENT ================= */
@@ -104,22 +192,17 @@ const BudgetAllocationUpsertModal: React.FC<
   const [form, setForm] = useState<FormState>(initialForm);
   const [loading, setLoading] = useState(false);
 
-  const [budgets, setBudgets] = useState<any[]>([]);
-  const [programs, setPrograms] = useState<any[]>([]);
-  const [classifications, setClassifications] = useState<Classification[]>([]);
-  const [objects, setObjects] = useState<any[]>([]);
-
-  const [classificationLimits, setClassificationLimits] = useState<
-    ClassificationLimit[]
+  const [budgets, setBudgets] = useState<BudgetRecord[]>([]);
+  const [programs, setPrograms] = useState<
+    BudgetAllocationProgramRecord[]
   >([]);
+  const [classifications, setClassifications] = useState<
+    BudgetClassification[]
+  >([]);
+  const [objects, setObjects] = useState<BudgetAllocationObjectRecord[]>([]);
+  const [classificationLimits, setClassificationLimits] = useState<ClassificationLimit[]>([]);
   const [limitInfo, setLimitInfo] = useState<LimitInfo | null>(null);
   const [limitLoading, setLimitLoading] = useState(false);
-   const CATEGORY_OPTIONS: BudgetCategory[] = ['ADMINISTRATIVE', 'YOUTH'];
-
-const CATEGORY_LABELS: Record<BudgetCategory, string> = {
-  ADMINISTRATIVE: 'GAP',
-  YOUTH: 'SKYDEP',
-};
   const [showLimitForm, setShowLimitForm] = useState(false);
   const [newLimitBudgetId, setNewLimitBudgetId] = useState('');
   const [newLimitAmount, setNewLimitAmount] = useState('');
@@ -147,33 +230,75 @@ const CATEGORY_LABELS: Record<BudgetCategory, string> = {
     );
     return selected?.allowedCategories?.length
       ? selected.allowedCategories
-      : CATEGORY_OPTIONS;
+      : DEFAULT_CATEGORY_OPTIONS;
   }, [classifications, form.classificationId]);
 
   const filteredObjects = useMemo(() => {
-  if (!form.classificationId) return [];
+    if (!form.classificationId) {
+      return [];
+    }
 
-  return objects.filter(
-    (o) => String(o.classificationId) === form.classificationId
+    return objects.filter(
+      (item) =>
+        Number(item.classificationId) === Number(form.classificationId)
+    );
+  }, [form.classificationId, objects]);
+
+  const selectedObject = useMemo(
+    () =>
+      objects.find(
+        (item) => String(item.id) === String(form.objectOfExpenditureId)
+      ),
+    [form.objectOfExpenditureId, objects]
   );
-}, [objects, form.classificationId]);
-const upcomingPrograms = useMemo(() => {
 
-  const today = new Date()
-  today.setHours(0,0,0,0)
+  const filteredPrograms = useMemo(() => {
+    if (
+      form.category !== 'YOUTH' ||
+      !form.programCategoryId
+    ) {
+      return [];
+    }
 
-  return programs.filter((p) => {
+    const selectedProgramCategoryId = Number(
+      form.programCategoryId
+    );
 
-    if(!p.startDate) return false
+    if (
+      !Number.isInteger(selectedProgramCategoryId) ||
+      selectedProgramCategoryId <= 0
+    ) {
+      return [];
+    }
 
-    const start = new Date(p.startDate)
-    start.setHours(0,0,0,0)
+    return filterProgramsByProgramCategory(
+      programs,
+      String(selectedProgramCategoryId)
+    ).filter(
+      (program) => program.allocationStatus === 'UPCOMING'
+    );
+  }, [
+    form.category,
+    form.programCategoryId,
+    programs,
+  ]);
 
-    return today < start
+  const visibleClassificationLimits = useMemo(() => {
+    if (!form.category || !form.classificationId) {
+      return [];
+    }
 
-  })
-
-}, [programs])
+    return classificationLimits.filter(
+      (limit) =>
+        Number(limit.classificationId) ===
+          Number(form.classificationId) &&
+        limit.category === form.category
+    );
+  }, [
+    classificationLimits,
+    form.category,
+    form.classificationId,
+  ]);
 
   const resetForm = () => {
     setForm(initialForm);
@@ -183,6 +308,7 @@ const upcomingPrograms = useMemo(() => {
     setNewLimitBudgetId('');
     setNewLimitAmount('');
     setRemainingBudget(null);
+    setHasExistingAllocation(false);
   };
 const checkExistingAllocation = useCallback(
   async (objectId: string) => {
@@ -211,7 +337,8 @@ const checkExistingAllocation = useCallback(
       // if creating new → any existing is duplicate
       // if editing → ignore itself
       const duplicate = allocations.some(
-        (a: any) => (!allocationId ? true : a.id !== allocationId)
+        (allocation: AllocationRecord) =>
+          (!allocationId ? true : allocation.id !== allocationId)
       );
 
       setHasExistingAllocation(duplicate);
@@ -222,9 +349,12 @@ const checkExistingAllocation = useCallback(
   [form.budgetId, form.classificationId, form.category, allocationId]
 );
 useEffect(() => {
-  if (form.objectOfExpenditureId) {
-    checkExistingAllocation(form.objectOfExpenditureId);
+  if (!form.objectOfExpenditureId) {
+    setHasExistingAllocation(false);
+    return;
   }
+
+  checkExistingAllocation(form.objectOfExpenditureId);
 }, [
   form.budgetId,
   form.classificationId,
@@ -252,8 +382,25 @@ useEffect(() => {
           }
         );
         const payload = res.data?.data;
+        const limits = Array.isArray(payload)
+          ? payload
+          : payload?.limits ?? [];
+
         setClassificationLimits(
-          Array.isArray(payload) ? payload : payload?.limits ?? []
+          limits.filter((limit: ClassificationLimit) => {
+            if (
+              Number(limit.classificationId) !==
+              Number(classificationId)
+            ) {
+              return false;
+            }
+
+            if (category) {
+              return limit.category === category;
+            }
+
+            return true;
+          })
         );
       } catch {
         setClassificationLimits([]);
@@ -338,25 +485,54 @@ useEffect(() => {
     const load = async () => {
       const [b, p, c, o] = await Promise.all([
         api.get('/budgets'),
-        api.get('/programs?isActive=true&limit=100'),
+        api.get('/programs?limit=1000'),
         api.get('/classifications'),
-        api.get('/objects-of-expenditure?limit=100'),
+        api.get('/objects-of-expenditure', {
+          params: { limit: 1000 },
+        }),
       ]);
 
+      const rawPrograms = Array.isArray(p.data?.data)
+        ? (p.data.data as FundingProgramRecord[])
+        : [];
+      const normalizedPrograms: BudgetAllocationProgramRecord[] =
+        normalizeFundingPrograms(rawPrograms).map((program) => ({
+          ...program,
+          allocationStatus:
+            resolveProgramAllocationStatus(program),
+        }));
+      const classificationRecords = Array.isArray(c.data?.data)
+        ? c.data.data
+        : [];
+      const objectRecords = Array.isArray(o.data?.data)
+        ? o.data.data
+        : [];
+
       setBudgets(b.data?.data ?? []);
-      setPrograms(p.data?.data ?? []);
-      setClassifications(c.data?.data ?? []);
-      setObjects(o.data?.data ?? []);
+      setPrograms(normalizedPrograms);
+      setClassifications(classificationRecords);
+      setObjects(objectRecords);
 
       if (allocationId) {
         const res = await api.get(`/budget-allocations/${allocationId}`);
         const a = res.data?.data;
         const category = (a?.category ?? '') as BudgetCategory | '';
+        const selectedProgram = normalizedPrograms.find(
+          (program) => Number(program.id) === Number(a?.programId)
+        );
 
         setForm({
           budgetId: String(a?.budgetId ?? ''),
+          limitId: '',
+          programCategoryId:
+            category === 'YOUTH'
+              ? String(
+                  selectedProgram?.programCategoryId ??
+                    selectedProgram?.categoryId ??
+                    ''
+                )
+              : '',
           programId: String(a?.programId ?? ''),
-            limitId: '',     // ✅ RESET
           classificationId: String(a?.classificationId ?? ''),
           category,
           objectOfExpenditureId: String(a?.objectOfExpenditureId ?? ''),
@@ -372,47 +548,72 @@ useEffect(() => {
       }
     };
 
-    load();
+    load().catch((error: unknown) => {
+      setAlert({
+        open: true,
+        type: 'error',
+        title: 'Failed',
+        message: getApiErrorMessage(
+          error,
+          'Failed to load allocation form data.'
+        ),
+      });
+    });
   }, [open, allocationId, fetchClassificationLimits, fetchRemainingLimit]);
 
   const handleClassificationChange = async (classificationId: string) => {
     const selected = classifications.find((c) => String(c.id) === classificationId);
     const allowed = selected?.allowedCategories?.length
       ? selected.allowedCategories
-      : CATEGORY_OPTIONS;
-    const nextCategory = allowed[0] ?? '';
+      : DEFAULT_CATEGORY_OPTIONS;
+    const nextCategory =
+      allowed.length === 1 ? allowed[0] : '';
 
     setForm((f) => ({
-  ...f,
-  classificationId,
-  category: nextCategory,
-  budgetId: '',
-  limitId: '',     // ✅ RESET
-  allocatedAmount: '',
-   objectOfExpenditureId: '',
-}));
+      ...f,
+      classificationId,
+      category: nextCategory,
+      budgetId: '',
+      limitId: '',
+      programCategoryId: '',
+      programId: '',
+      allocatedAmount: '',
+      objectOfExpenditureId: '',
+    }));
 
+    setHasExistingAllocation(false);
     setLimitInfo(null);
+    setClassificationLimits([]);
     setShowLimitForm(false);
     setNewLimitBudgetId('');
     setNewLimitAmount('');
     setRemainingBudget(null);
 
-    await fetchClassificationLimits(classificationId, nextCategory);
+    if (nextCategory) {
+      await fetchClassificationLimits(
+        classificationId,
+        nextCategory
+      );
+      return;
+    }
+
+    setClassificationLimits([]);
   };
 const handleCategoryChange = async (category: string) => {
   const typedCategory = category as BudgetCategory;
 
   setForm((f) => ({
-  ...f,
-  category: typedCategory,
-  programId: typedCategory === 'ADMINISTRATIVE' ? '' : f.programId,
-  budgetId: '',
-  limitId: '',     // ✅ RESET
-  allocatedAmount: '',
-}));
+    ...f,
+    category: typedCategory,
+    programCategoryId: '',
+    programId: '',
+    budgetId: '',
+    limitId: '',
+    allocatedAmount: '',
+  }));
 
   setLimitInfo(null);
+  setClassificationLimits([]);
   setShowLimitForm(false);
   setNewLimitBudgetId('');
   setNewLimitAmount('');
@@ -423,8 +624,23 @@ const handleCategoryChange = async (category: string) => {
   }
 };
 
+const handleProgramCategoryChange = (programCategoryId: string) => {
+  setForm((currentForm) => ({
+    ...currentForm,
+    programCategoryId,
+    programId: '',
+  }));
+};
+
+const handleProgramChange = (programId: string) => {
+  setForm((currentForm) => ({
+    ...currentForm,
+    programId,
+  }));
+};
+
 const handleBudgetLimitChange = async (selectedLimitId: string) => {
-  const selectedLimit = classificationLimits.find(
+  const selectedLimit = visibleClassificationLimits.find(
     (l) => String(l.id) === selectedLimitId
   );
 
@@ -461,7 +677,7 @@ const getAvailableBudgetsForNewLimit = () => {
   if (!form.category) return [];
 
   return budgets.filter((b) => {
-    const hasLimitForCategory = classificationLimits.some(
+    const hasLimitForCategory = visibleClassificationLimits.some(
       (l) =>
         l.budgetId === b.id &&
         l.category === form.category
@@ -530,15 +746,23 @@ const getAvailableBudgetsForNewLimit = () => {
     setLimitSaving(true);
 
     try {
-      await api.post('/classification-limits', {
+      const response = await api.post('/classification-limits', {
         budgetId: Number(newLimitBudgetId),
         classificationId: Number(form.classificationId),
         category: form.category,
         limitAmount: Number(newLimitAmount),
       });
+      const createdLimitId = String(
+        response.data?.data?.id ?? ''
+      );
 
       await fetchClassificationLimits(form.classificationId, form.category);
-      setForm((f) => ({ ...f, budgetId: newLimitBudgetId }));
+      setForm((f) => ({
+        ...f,
+        budgetId: newLimitBudgetId,
+        limitId: createdLimitId,
+        allocatedAmount: '',
+      }));
       await fetchRemainingLimit(newLimitBudgetId, form.classificationId, form.category);
 
       setShowLimitForm(false);
@@ -551,12 +775,15 @@ const getAvailableBudgetsForNewLimit = () => {
         title: 'Limit Created',
         message: 'Classification limit has been set successfully.',
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       setAlert({
         open: true,
         type: 'error',
         title: 'Failed',
-        message: err?.response?.data?.message ?? 'Failed to create limit.',
+        message: getApiErrorMessage(
+          err,
+          'Failed to create limit.'
+        ),
       });
     } finally {
       setLimitSaving(false);
@@ -594,6 +821,16 @@ const getAvailableBudgetsForNewLimit = () => {
       return;
     }
 
+    if (form.category === 'YOUTH' && !form.programCategoryId) {
+      setAlert({
+        open: true,
+        type: 'error',
+        title: 'Select Program Category',
+        message: 'Please select a program category for SKYDEP.',
+      });
+      return;
+    }
+
     if (form.category === 'YOUTH' && !form.programId) {
   setAlert({
     open: true,
@@ -609,6 +846,31 @@ const getAvailableBudgetsForNewLimit = () => {
         type: 'error',
         title: 'Select Object',
         message: 'Please select an object of expenditure.',
+      });
+      return;
+    }
+
+    if (!selectedObject) {
+      setAlert({
+        open: true,
+        type: 'error',
+        title: 'Invalid Object',
+        message:
+          'The selected object of expenditure no longer exists. Please choose another one.',
+      });
+      return;
+    }
+
+    if (
+      Number(selectedObject.classificationId) !==
+      Number(form.classificationId)
+    ) {
+      setAlert({
+        open: true,
+        type: 'error',
+        title: 'Invalid Object',
+        message:
+          'The selected object does not belong to the chosen classification.',
       });
       return;
     }
@@ -633,7 +895,7 @@ const getAvailableBudgetsForNewLimit = () => {
       });
       return;
     }
-    if (hasExistingAllocation && !isEdit) {
+    if (hasExistingAllocation) {
   setAlert({
     open: true,
     type: 'error',
@@ -671,12 +933,15 @@ const getAvailableBudgetsForNewLimit = () => {
         title: 'Success',
         message: `Budget allocation ${isEdit ? 'updated' : 'created'} successfully.`,
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       setAlert({
         open: true,
         type: 'error',
         title: 'Failed',
-        message: e?.response?.data?.message ?? 'Something went wrong',
+        message: getApiErrorMessage(
+          e,
+          'Something went wrong'
+        ),
       });
     } finally {
       setLoading(false);
@@ -749,7 +1014,7 @@ const getAvailableBudgetsForNewLimit = () => {
           </div>
 
           <div className="px-8 py-6 space-y-6 overflow-y-auto flex-1">
-           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
   <FlatSelect
     label="Classification"
     value={form.classificationId}
@@ -765,26 +1030,68 @@ const getAvailableBudgetsForNewLimit = () => {
     value={form.category}
     options={allowedCategoriesForSelection.map((category) => ({
       id: category,
-      label: category,
+      label: CATEGORY_LABELS[category],
     }))}
+    placeholder={
+      form.classificationId
+        ? 'Select Category'
+        : 'Select Classification First'
+    }
     onChange={handleCategoryChange}
     disabled={!form.classificationId}
   />
 
-  {form.category === 'YOUTH' && (
-    <FlatSelect
-      label="Program"
-      value={form.programId}
-      options={upcomingPrograms.map((p) => ({
-  id: p.id,
-  label: `${p.code} - ${p.name}`,
-}))}
-      onChange={(v) =>
-        setForm((f) => ({ ...f, programId: v }))
-      }
-    />
-  )}
+  <FlatSelect
+    label="Program Category"
+    value={form.programCategoryId}
+    options={PROGRAM_CATEGORY_OPTIONS.map((categoryOption) => ({
+      id: categoryOption.id,
+      label: categoryOption.name,
+    }))}
+    placeholder={
+      !form.category
+        ? 'Select Category First'
+        : form.category === 'ADMINISTRATIVE'
+          ? 'Not required for GAP'
+          : 'Select Program Category'
+    }
+    onChange={handleProgramCategoryChange}
+    disabled={form.category !== 'YOUTH'}
+  />
+
+  <FlatSelect
+    label="Program"
+    value={form.programId}
+    options={filteredPrograms.map((program) => ({
+      id: program.id,
+      label: `${program.code} - ${program.name}`,
+    }))}
+    placeholder={
+      !form.category
+        ? 'Select Category First'
+        : form.category === 'ADMINISTRATIVE'
+          ? 'Not required for GAP'
+          : !form.programCategoryId
+            ? 'Select Program Category First'
+            : filteredPrograms.length === 0
+              ? 'No programs available'
+            : 'Select Program'
+    }
+    onChange={handleProgramChange}
+    disabled={
+      form.category !== 'YOUTH' ||
+      !form.programCategoryId
+    }
+  />
 </div>
+
+            {form.category === 'YOUTH' &&
+              form.programCategoryId &&
+              filteredPrograms.length === 0 && (
+                <p className="text-sm text-amber-600">
+                  No programs available for the selected program category.
+                </p>
+              )}
 
               
 
@@ -844,7 +1151,7 @@ const getAvailableBudgetsForNewLimit = () => {
                       Loading limits...
                     </p>
                   </div>
-                ) : form.category && classificationLimits.length === 0 && !showLimitForm ? (
+                ) : form.category && visibleClassificationLimits.length === 0 && !showLimitForm ? (
                   <div
                     className="
                       rounded-xl
@@ -868,7 +1175,9 @@ const getAvailableBudgetsForNewLimit = () => {
                           No Budget Limit Found
                         </h4>
                         <p className="text-sm text-slate-600 mt-1.5 leading-relaxed">
-                          This classification has no limit for {form.category}. Create one to continue.
+                          {hasAvailableBudgets
+                            ? `This classification has no limit for ${CATEGORY_LABELS[form.category]}. Create one to continue.`
+                            : `No budget available for ${CATEGORY_LABELS[form.category]}.`}
                         </p>
                         {hasAvailableBudgets && (
                           <button
@@ -892,17 +1201,22 @@ const getAvailableBudgetsForNewLimit = () => {
                   </div>
                 ) : (
                   <>
-                    {form.category && classificationLimits.length > 0 && !showLimitForm && (
+                    {form.category && visibleClassificationLimits.length > 0 && !showLimitForm && (
                       <div className="space-y-4">
                         <FlatSelect
   label="Select Budget"
   value={form.limitId}   // ✅ FIXED
-  options={classificationLimits.map((l) => ({
+  options={visibleClassificationLimits.map((l) => ({
     id: String(l.id),    // classificationLimit.id
     label: `FY ${l.budget.fiscalYear.year} - ${
   CATEGORY_LABELS[(l.category ?? form.category) as BudgetCategory]
 } - Limit: PHP ${Number(l.limitAmount).toLocaleString()}`
   }))}
+  placeholder={
+    visibleClassificationLimits.length > 0
+      ? 'Select Budget'
+      : 'No budget available'
+  }
   onChange={handleBudgetLimitChange}
 />
 
@@ -1045,6 +1359,12 @@ const getAvailableBudgetsForNewLimit = () => {
                 id: o.id,
                 label: `${o.code} - ${o.name}`,
               }))}
+              placeholder={
+                form.classificationId
+                  ? 'Select Object of Expenditure'
+                  : 'Select Classification First'
+              }
+              disabled={!form.classificationId}
              onChange={(v) => {
   setForm((f) => ({ ...f, objectOfExpenditureId: v }));
   checkExistingAllocation(v);

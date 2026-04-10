@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Calendar, Layers, Users } from 'lucide-react'
 
 import api from '@/components/lib/api'
 import AlertModal from '@/components/reusable/modal/AlertModal'
 import FlatInput from '@/components/reusable/ui/FlatInput'
+import { PROGRAM_CATEGORIES, PROGRAMS } from '@/src/lib/programs/catalog'
 
 /* ================= TYPES ================= */
 
@@ -18,6 +19,8 @@ interface Program {
   startDate?: string
   endDate?: string
   isActive?: boolean
+  categoryId?: number | null
+  programId?: number | null
 }
 
 interface ProgramUpsertModalProps {
@@ -36,6 +39,8 @@ interface ProgramPayload {
   startDate: string
   endDate: string
   isActive: boolean
+  categoryId?: number | null
+  programId?: number | null
 }
 
 /* ================= FORM TYPE ================= */
@@ -49,6 +54,8 @@ interface ProgramForm {
   startDate: string
   endDate: string
   isActive: boolean
+  categoryId: number | null
+  programId: number | null
 }
 
 /* ================= EMPTY FORM ================= */
@@ -62,6 +69,8 @@ const EMPTY_FORM: ProgramForm = {
   startDate: '',
   endDate: '',
   isActive: false,
+  categoryId: null,
+  programId: null,
 }
 
 export default function ProgramUpsertModal({
@@ -115,6 +124,8 @@ export default function ProgramUpsertModal({
           startDate: d.startDate?.slice(0, 10) ?? '',
           endDate: d.endDate?.slice(0, 10) ?? '',
           isActive: d.isActive ?? false,
+          categoryId: d.categoryId ?? null,
+          programId: d.programId ?? null,
         })
 
       } catch {
@@ -141,6 +152,7 @@ export default function ProgramUpsertModal({
     new Date(form.endDate) < new Date(form.startDate)
 
   const isInvalid =
+    !form.categoryId ||
     !form.name ||
     !form.committeeInCharge ||
     !form.beneficiaries ||
@@ -148,6 +160,15 @@ export default function ProgramUpsertModal({
     !form.endDate ||
     (!isEdit && !form.code) ||
     invalidDate
+
+  /* ================= FILTERED PROGRAMS ================= */
+
+  const filteredPrograms = useMemo(() => {
+    if (!form.categoryId) {
+      return [];
+    }
+    return PROGRAMS.filter(program => program.categoryId === form.categoryId);
+  }, [form.categoryId]);
 
   /* ================= SUBMIT ================= */
 
@@ -167,6 +188,8 @@ export default function ProgramUpsertModal({
         startDate: form.startDate,
         endDate: form.endDate,
         isActive: form.isActive,
+        categoryId: form.categoryId ?? null,
+        programId: form.programId ?? null,
         ...(isEdit ? {} : { code: form.code }),
       }
 
@@ -238,6 +261,63 @@ export default function ProgramUpsertModal({
                   }
                 />
               )}
+
+              <label className="w-full space-y-2">
+                <span className="text-xs font-medium text-gray-500">
+                  Program Category
+                </span>
+                <select
+                  value={form.categoryId ?? ''}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      categoryId:
+                        Number(e.target.value) || null,
+                      programId: null, // Reset program when category changes
+                    })
+                  }
+                  className="w-full rounded-xl border border-slate-300 bg-gray-100 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                >
+                  <option value="">Select Category</option>
+                  {PROGRAM_CATEGORIES.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="w-full space-y-2">
+                <span className="text-xs font-medium text-gray-500">
+                  Program
+                </span>
+                <select
+                  value={form.programId ?? ''}
+                  onChange={(e) => {
+                    const selectedProgramId = Number(e.target.value) || null;
+                    const selectedProgram = selectedProgramId 
+                      ? PROGRAMS.find(p => p.id === selectedProgramId) 
+                      : null;
+                    
+                    setForm({
+                      ...form,
+                      programId: selectedProgramId,
+                      name: selectedProgram ? selectedProgram.name : '',
+                    });
+                  }}
+                  disabled={!form.categoryId || filteredPrograms.length === 0}
+                  className="w-full rounded-xl border border-slate-300 bg-gray-100 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-50"
+                >
+                  <option value="">
+                    {form.categoryId ? 'Select Program' : 'Select Category First'}
+                  </option>
+                  {filteredPrograms.map((program) => (
+                    <option key={program.id} value={program.id}>
+                      {program.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
               <FlatInput
                 label="Program Name"

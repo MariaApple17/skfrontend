@@ -138,25 +138,32 @@ const getOfficial = (position: string) =>
   /* ================= FLATTEN TABLE ROWS ================= */
 
   const tableRows = useMemo(() => {
-    let counter = 0;
-
-    return filteredData.flatMap(p =>
-  (p.items ?? []).map(item =>  {
-        counter++;
-        return {
-          key: `${p.id}-${item.id}`,
-          rowNumber: counter,
-          title: p.title,
-          classification: p.allocation?.classification?.name ?? '—',
-          object: p.allocation?.object?.name ?? '—',
-          name: item.name,
-          quantity: item.quantity,
-          unit: item.unit,
-          unitCost: Number(item.unitCost),
-          totalPrice: Number(item.totalPrice),
-        };
-      })
+    const rows = filteredData.flatMap(p =>
+      (p.items ?? []).map(item => ({
+        key: `${p.id}-${item.id}`,
+        title: p.title,
+        classification: p.allocation?.classification?.name ?? '—',
+        object: p.allocation?.object?.name ?? '—',
+        name: item.name,
+        quantity: item.quantity,
+        unit: item.unit,
+        unitCost: Number(item.unitCost),
+        totalPrice: Number(item.totalPrice),
+      }))
     );
+
+    const sortedRows = rows.sort((a, b) => {
+      if (a.title !== b.title) return a.title.localeCompare(b.title);
+      if (a.classification !== b.classification)
+        return a.classification.localeCompare(b.classification);
+      return a.object.localeCompare(b.object);
+    });
+
+    return sortedRows.map((row, index) => ({
+      ...row,
+      rowNumber: index + 1,
+      key: `${row.key}-${index}`,
+    }));
   }, [filteredData]);
 const grandTotal = useMemo(() => {
   return tableRows.reduce((sum, row) => sum + Number(row.totalPrice || 0), 0);
@@ -255,23 +262,38 @@ const grandTotal = useMemo(() => {
             </thead>
 
             <tbody>
-              {tableRows.map(row => (
-                <tr key={row.key} className="text-center">
-                  <td className="border p-2">{row.rowNumber}</td>
-                  <td className="border p-2">{row.title}</td>
-                  <td className="border p-2">{row.classification}</td>
-                  <td className="border p-2">{row.object}</td>
-                  <td className="border p-2">{row.name}</td>
-                  <td className="border p-2">{row.quantity}</td>
-                  <td className="border p-2">{row.unit}</td>
-                  <td className="border p-2 text-right">
-                    ₱{Number(row.unitCost || 0).toLocaleString()}
-                  </td>
-                  <td className="border p-2 text-right">
-                    ₱{Number(row.totalPrice || 0).toLocaleString()}
-                  </td>
-                </tr>
-              ))}
+              {tableRows.map((row, index) => {
+                const prevRow = index > 0 ? tableRows[index - 1] : null;
+                const isSameGroup =
+                  prevRow &&
+                  prevRow.title === row.title &&
+                  prevRow.classification === row.classification &&
+                  prevRow.object === row.object;
+
+                return (
+                  <tr key={row.key} className="text-center">
+                    <td className="border p-2">{row.rowNumber}</td>
+                    <td className="border p-2">
+                      {!isSameGroup ? row.title : ""}
+                    </td>
+                    <td className="border p-2">
+                      {!isSameGroup ? row.classification : ""}
+                    </td>
+                    <td className="border p-2">
+                      {!isSameGroup ? row.object : ""}
+                    </td>
+                    <td className="border p-2">{row.name}</td>
+                    <td className="border p-2">{row.quantity}</td>
+                    <td className="border p-2">{row.unit}</td>
+                    <td className="border p-2 text-right">
+                      ₱{Number(row.unitCost || 0).toLocaleString()}
+                    </td>
+                    <td className="border p-2 text-right">
+                      ₱{Number(row.totalPrice || 0).toLocaleString()}
+                    </td>
+                  </tr>
+                );
+              })}
 
               <tr className="font-bold bg-gray-100 text-center">
                 <td colSpan={8} className="border p-2 text-right">

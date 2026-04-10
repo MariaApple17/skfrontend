@@ -108,6 +108,28 @@ const STATUS_ICON: Record<ProcurementStatus, React.ReactElement> = {
   COMPLETED: <CheckCircle size={12} />,
 };
 
+const validateProofFile = (file?: File | null) => {
+  if (!file) {
+    return 'Please select a proof file.';
+  }
+
+  const allowedTypes = new Set([
+    'application/pdf',
+    'image/jpeg',
+    'image/png',
+  ]);
+
+  if (!allowedTypes.has(file.type)) {
+    return 'Only PDF, JPG, or PNG files are allowed.';
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    return 'Proof file must be 5MB or smaller.';
+  }
+
+  return null;
+};
+
 /* ================= CONTENT ================= */
 function ProcurementManagementContent() {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -206,11 +228,20 @@ function ProcurementManagementContent() {
     (action === 'approve' ||
       action === 'reject' ||
       action === 'purchase' ||
-      action === 'complete');const uploadProof = async () => {
-  if (!uploadFile || !targetId) return;
+      action === 'complete');
+
+  const uploadProof = async () => {
+  const validationError = validateProofFile(uploadFile);
+
+  if (validationError) {
+    setModalError(validationError);
+    return;
+  }
+
+  if (!targetId) return;
 
   const formData = new FormData();
-  formData.append('file', uploadFile);
+  formData.append('proof', uploadFile as File);
   formData.append('requestId', String(targetId));
   formData.append('type', proofType);
 
@@ -220,6 +251,7 @@ function ProcurementManagementContent() {
 
   try {
     setUploading(true);
+    setModalError(null);
 
     await api.post('/procurement/upload-proof', formData);
 
@@ -231,15 +263,14 @@ function ProcurementManagementContent() {
     fetchRequests();
 
   } catch (err: any) {
-    console.log("SERVER ERROR:", err.response?.data);
-    alert(JSON.stringify(err.response?.data));
+    setModalError(
+      err?.response?.data?.message ||
+        'Failed to upload proof.'
+    );
   } finally {
     setUploading(false);
   }
 };
-
-
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 
   /* ================= IMAGE FIX ================= */
   const resolveImageUrl = (url?: string | null) => {
@@ -639,6 +670,7 @@ function ProcurementManagementContent() {
                           <button
                             onClick={() => {
                               setTargetId(req.id);
+                              setModalError(null);
                               setAction('upload-proof');
                             }}
                             className="
@@ -739,6 +771,7 @@ function ProcurementManagementContent() {
           setUploadFile(null);
           setProofType('');
           setProofDescription('');
+          setModalError(null);
         }}
       >
         {modalError && (
@@ -758,7 +791,12 @@ function ProcurementManagementContent() {
             accept=".pdf,.jpg,.jpeg,.png"
             onChange={e => {
               const file = e.target.files?.[0];
-              if (file) setUploadFile(file);
+              const validationError = validateProofFile(file);
+
+              setModalError(validationError);
+              setUploadFile(
+                validationError ? null : file ?? null
+              );
             }}
             className="block w-full text-sm"
           />

@@ -13,20 +13,10 @@ import {
 import api from '@/components/lib/api';
 import AlertModal from '@/components/reusable/modal/AlertModal';
 import FlatInput from '@/components/reusable/ui/FlatInput';
-
-/* ================= TYPES ================= */
-interface ObjectOfExpenditure {
-  id: number;
-  code: string;
-  name: string;
-  description?: string;
-  classificationId: number; // ✅ ADDED
-}
-
-interface BudgetClassification {
-  id: number;
-  name: string;
-}
+import type {
+  ExpenditureClassification,
+  ObjectOfExpenditure,
+} from '@/lib/budget';
 
 interface ObjectOfExpenditureUpsertModalProps {
   open: boolean;
@@ -60,7 +50,9 @@ const ObjectOfExpenditureUpsertModal: React.FC<
   });
 
   const [classificationId, setClassificationId] = useState<string>(''); // ✅ ADDED
-  const [classifications, setClassifications] = useState<BudgetClassification[]>([]); // ✅ ADDED
+  const [classifications, setClassifications] = useState<
+    ExpenditureClassification[]
+  >([]); // ✅ ADDED
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);

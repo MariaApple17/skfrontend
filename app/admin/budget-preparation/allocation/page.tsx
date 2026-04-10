@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useMemo,
   useState,
 } from 'react';
 
@@ -36,6 +37,7 @@ object?: { id: number; code: string; name: string } | null;
 interface Option {
   id: number;
   label: string;
+  classificationId?: number;
 }
 
 /* ================= CONTENT ================= */
@@ -68,6 +70,18 @@ function BudgetAllocationContent() {
   const [programs, setPrograms] = useState<Option[]>([]);
   const [classifications, setClassifications] = useState<Option[]>([]);
   const [objects, setObjects] = useState<Option[]>([]);
+
+  const filteredObjects = useMemo(() => {
+    if (!classificationId) {
+      return [];
+    }
+
+    return objects.filter(
+      (object) =>
+        Number(object.classificationId) ===
+        Number(classificationId)
+    );
+  }, [classificationId, objects]);
 
   /* MODALS */
   const [modalOpen, setModalOpen] = useState(false);
@@ -109,6 +123,7 @@ function BudgetAllocationContent() {
       o.data.data.map((x: any) => ({
         id: x.id,
         label: `${x.code} — ${x.name}`,
+        classificationId: x.classificationId,
       }))
     );
   });
@@ -254,6 +269,7 @@ function BudgetAllocationContent() {
           }))}
           onChange={v => {
             setPage(1);
+            setObjectId('');
             setClassificationId(Number(v) || '');
           }}
         />
@@ -262,10 +278,16 @@ function BudgetAllocationContent() {
         <FlatSelect
           label="Object"
           value={String(objectId || '')}
-          options={objects.map(o => ({
+          options={filteredObjects.map(o => ({
             id: o.id,
             label: o.label,
           }))}
+          placeholder={
+            classificationId
+              ? 'Select Object'
+              : 'Select Classification First'
+          }
+          disabled={!classificationId}
           onChange={v => {
             setPage(1);
             setObjectId(Number(v) || '');

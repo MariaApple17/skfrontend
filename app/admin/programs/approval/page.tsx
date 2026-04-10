@@ -19,6 +19,8 @@ interface Program{
   name:string
   description:string
   approvalStatus:string
+  approvalsCount?: number
+  approvalsRequired?: number
   approvals?:Approval[]
   user?:{
     fullName:string
@@ -129,25 +131,26 @@ export default function ProgramApprovalPage(){
   /* ================= CALCULATE STATUS ================= */
 
   const getProgramStatus = (p:Program)=>{
-
     const approvals = p.approvals ?? []
-
-    const approvedVotes = approvals.filter(
-      v => v.decision === "approved"
-    ).length
-
+    const approvedVotes =
+      p.approvalsCount ??
+      approvals.filter(v => v.decision === "approved").length
     const rejectedVotes = approvals.filter(
       v => v.decision === "rejected"
     ).length
+    const approvalsRequired = p.approvalsRequired ?? 4
 
-    const totalCouncil = 7
-    const majority = Math.floor(totalCouncil / 2) + 1
-
-    if(approvedVotes >= majority){
+    if (
+      p.approvalStatus?.toUpperCase() === "APPROVED" ||
+      approvedVotes >= approvalsRequired
+    ) {
       return "Approved"
     }
 
-    if(rejectedVotes >= majority){
+    if(
+      p.approvalStatus?.toUpperCase() === "REJECTED" ||
+      rejectedVotes > 0
+    ){
       return "Rejected"
     }
 
@@ -258,6 +261,8 @@ export default function ProgramApprovalPage(){
           name:selectedProgram.name,
           description:selectedProgram.description,
           status:selectedProgram.approvalStatus,
+          approvalsCount:selectedProgram.approvalsCount,
+          approvalsRequired:selectedProgram.approvalsRequired,
           approvals:selectedProgram.approvals ?? [],
           user:selectedProgram.user ?? { fullName:"SK Secretary" }
 

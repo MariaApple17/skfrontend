@@ -191,7 +191,7 @@ if (loading) {
     <p className="text-sm">Office of the Sangguniang Kabataan</p>
 
     <p className="font-bold text-xl mt-4">
-      FINANCIAL REPORT
+      STATUS OF APPROPRIATION, ALLOTMENT, AND OBLIGATIONS
     </p>
 
     <p className="text-sm">

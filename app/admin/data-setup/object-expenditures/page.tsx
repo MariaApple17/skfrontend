@@ -8,42 +8,27 @@ import {
 import {
   FileText,
   Layers,
-  Pencil,
-  Plus,
 } from 'lucide-react';
 
-import api from '@/components/lib/api';
 import AuthGuard from '@/components/reusable/guard/AuthGuard';
-import AlertModal from '@/components/reusable/modal/AlertModal';
-import ObjectOfExpenditureUpsertModal
-  from '@/components/reusable/modal/ObjectOfExpenditureUpsertModal';
+import {
+  CLASSIFICATIONS,
+  getClassificationById,
+  OBJECTS_OF_EXPENDITURE,
+  type ExpenditureClassification,
+  type ObjectOfExpenditure,
+} from '@/lib/budget';
 import { AdminPageShimmer } from '@/components/reusable/ui/PageShimmer';
 
 /* ================= TYPES ================= */
-interface ObjectOfExpenditure {
-  id: number;
-  code: string;
-  name: string;
-  description: string | null;
-  createdAt: string;
-  deletedAt: string | null;
-  classificationId: number;
-  classification?: {
-    id: number;
-    name: string;
-  };
+interface ObjectWithClassification extends ObjectOfExpenditure {
+  classification?: ExpenditureClassification;
 }
 
 /* ================= CONTENT ================= */
 function ObjectOfExpenditureContent() {
-  const [items, setItems] = useState<ObjectOfExpenditure[]>([]);
+  const [items, setItems] = useState<ObjectWithClassification[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-
-  const [modalOpen, setModalOpen] = useState<boolean>(false);
-  const [editId, setEditId] = useState<number | null>(null);
-
-  const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [alertOpen, setAlertOpen] = useState<boolean>(false);
 
   /* PAGINATION */
   const [page, setPage] = useState<number>(1);
@@ -53,16 +38,20 @@ function ObjectOfExpenditureContent() {
   /* ================= FETCH ================= */
   const fetchObjects = async () => {
     setLoading(true);
-
     try {
-      const res = await api.get(
-        `/objects-of-expenditure?page=${page}&limit=${limit}`
-      );
+      const objectsWithClassifications = OBJECTS_OF_EXPENDITURE.map((obj) => ({
+        ...obj,
+        classification: getClassificationById(obj.classificationId),
+      }));
 
-      setItems(res.data?.data ?? []);
-      setTotalPages(res.data?.pagination?.totalPages ?? 1);
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedItems = objectsWithClassifications.slice(startIndex, endIndex);
+
+      setItems(paginatedItems);
+      setTotalPages(Math.ceil(objectsWithClassifications.length / limit));
     } catch (err) {
-      console.error('Failed to fetch objects of expenditure', err);
+      console.error('Failed to load objects of expenditure', err);
     } finally {
       setLoading(false);
     }
@@ -71,20 +60,6 @@ function ObjectOfExpenditureContent() {
   useEffect(() => {
     fetchObjects();
   }, [page]);
-
-  /* ================= DELETE ================= */
-  const confirmDelete = async () => {
-    if (!deleteId) return;
-
-    try {
-      await api.delete(`/objects-of-expenditure/${deleteId}`);
-      setAlertOpen(false);
-      setDeleteId(null);
-      fetchObjects();
-    } catch (err) {
-      console.error('Delete failed', err);
-    }
-  };
 
   return (
     <>
@@ -98,17 +73,6 @@ function ObjectOfExpenditureContent() {
             Define and manage expenditure categories
           </p>
         </div>
-
-        <button
-          onClick={() => {
-            setEditId(null);
-            setModalOpen(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-900 text-white text-sm font-medium hover:bg-blue-800 transition"
-        >
-          <Plus size={16} />
-          New Object
-        </button>
       </div>
 
       {/* ================= CONTENT ================= */}
@@ -124,21 +88,9 @@ function ObjectOfExpenditureContent() {
             No Objects Found
           </h3>
 
-          <p className="text-sm text-slate-500 max-w-md mb-6">
-            Objects of expenditure define how spending is categorized
-            across the system. Create one to get started.
+          <p className="text-sm text-slate-500 max-w-md">
+            No objects of expenditure are available.
           </p>
-
-          <button
-            onClick={() => {
-              setEditId(null);
-              setModalOpen(true);
-            }}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-900 text-white text-sm font-medium hover:bg-blue-800 transition"
-          >
-            <Plus size={16} />
-            Create First Object
-          </button>
         </div>
       ) : (
         <>
@@ -149,46 +101,24 @@ function ObjectOfExpenditureContent() {
                 key={obj.id}
                 className="rounded-2xl bg-white p-5 shadow-lg shadow-slate-200/60 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200"
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-900/10 flex items-center justify-center">
-                      <FileText className="text-blue-900" size={18} />
-                    </div>
-
-                    <div>
-                      <h3 className="font-semibold text-slate-900">
-                        {obj.name}
-                      </h3>
-                      <p className="text-xs text-slate-500">
-                        Code: {obj.code}
-                      </p>
-                      <p className="text-xs text-blue-700 font-medium">
-                        {obj.classification?.name}
-                      </p>
-                    </div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-blue-900/10 flex items-center justify-center">
+                    <FileText className="text-blue-900" size={18} />
                   </div>
 
-                  <button
-                    onClick={() => {
-                      setEditId(obj.id);
-                      setModalOpen(true);
-                    }}
-                    className="p-2 rounded-lg text-blue-900 hover:bg-blue-900/10 transition"
-                  >
-                    <Pencil size={16} />
-                  </button>
+                  <div>
+                    <h3 className="font-semibold text-slate-900">
+                      {obj.name}
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Code: {obj.code}
+                    </p>
+                    <p className="text-xs text-blue-700 font-medium">
+                      {obj.classification?.name}
+                    </p>
+                  </div>
                 </div>
 
-                {obj.description && (
-                  <p className="text-sm text-slate-600 mb-3">
-                    {obj.description}
-                  </p>
-                )}
-
-                <p className="text-xs text-slate-500">
-                  Created:{' '}
-                  {new Date(obj.createdAt).toLocaleDateString()}
-                </p>
               </div>
             ))}
           </div>
@@ -218,31 +148,6 @@ function ObjectOfExpenditureContent() {
         </>
       )}
 
-      {/* ================= UPSERT MODAL ================= */}
-      <ObjectOfExpenditureUpsertModal
-        open={modalOpen}
-        objectId={editId}
-        onClose={() => {
-          setModalOpen(false);
-          setEditId(null);
-        }}
-        onSuccess={fetchObjects}
-      />
-
-      {/* ================= DELETE CONFIRM ================= */}
-      <AlertModal
-        open={alertOpen}
-        type="warning"
-        title="Delete Object of Expenditure"
-        message="This object of expenditure will be archived and removed from active use. Continue?"
-        confirmText="Delete"
-        showCancel
-        onConfirm={confirmDelete}
-        onClose={() => {
-          setAlertOpen(false);
-          setDeleteId(null);
-        }}
-      />
     </>
   );
 }
