@@ -17,6 +17,7 @@ import {
 import api from '@/components/lib/api';
 import AuthGuard from '@/components/reusable/guard/AuthGuard';
 import AlertModal from '@/components/reusable/modal/AlertModal';
+import BudgetAllocationDetailModal from '@/components/reusable/modal/BudgetAllocationDetailModal';
 import BudgetAllocationUpsertModal
   from '@/components/reusable/modal/BudgetAllocationUpsertModal';
 import { AdminPageShimmer } from '@/components/reusable/ui/PageShimmer';
@@ -26,12 +27,29 @@ import FlatSelect from '@/components/reusable/ui/FlatSelect';
 interface BudgetAllocation {
   id: number;
   allocatedAmount: string;
+  usedAmount?: string;
   category?: 'ADMINISTRATIVE' | 'YOUTH';
   createdAt: string;
 
- program?: { id: number; code: string; name: string } | null;
-classification?: { id: number; code: string; name: string } | null;
-object?: { id: number; code: string; name: string } | null;
+  program?: { id: number; code: string; name: string } | null;
+  classification?: { id: number; code: string; name: string } | null;
+  object?: { id: number; code: string; name: string } | null;
+}
+
+interface BudgetAllocationDetail extends BudgetAllocation {
+  updatedAt: string | null;
+  budget?: {
+    fiscalYear?: {
+      year: number;
+    } | null;
+  } | null;
+  requests?: {
+    id: number;
+    title: string;
+    amount: string;
+    status: string;
+    createdAt: string;
+  }[];
 }
 
 interface Option {
@@ -88,12 +106,32 @@ function BudgetAllocationContent() {
   const [editId, setEditId] = useState<number | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [alertOpen, setAlertOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [selectedAllocation, setSelectedAllocation] = useState<BudgetAllocationDetail | null>(null);
 
+  const fetchAllocationDetail = async (id: number) => {
+    setDetailLoading(true);
+    try {
+      const res = await api.get(`/budget-allocations/${id}`);
+      setSelectedAllocation(res.data.data);
+    } catch (err) {
+      console.error('Failed to fetch allocation detail', err);
+      setSelectedAllocation(null);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const openAllocationDetail = async (id: number) => {
+    setDetailOpen(true);
+    await fetchAllocationDetail(id);
+  };
   /* ================= LOAD FILTER OPTIONS ================= */
   useEffect(() => {
   Promise.all([
     api.get('/fiscal-years'),
-    api.get('/programs?isActive=true&limit=100'),
+    api.get('/programs?limit=100'),
     api.get('/classifications'),
     api.get('/objects-of-expenditure?limit=100'),
   ]).then(([b, p, c, o]) => {
@@ -339,7 +377,10 @@ function BudgetAllocationContent() {
             {items.map(alloc => (
               <div
                 key={alloc.id}
-                className="rounded-2xl bg-white border border-slate-100 p-6 hover:border-slate-200 hover:shadow-sm transition-all"
+                role="button"
+                tabIndex={0}
+                onClick={() => openAllocationDetail(alloc.id)}
+                className="rounded-2xl bg-white border border-slate-100 p-6 hover:border-slate-200 hover:shadow-sm transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-slate-200"
               >
                 <div className="flex justify-between items-start mb-5">
                   <div className="flex items-start gap-3">
@@ -395,6 +436,11 @@ function BudgetAllocationContent() {
                   </span>
                 </div>
 
+                <div className="mt-5 rounded-3xl bg-slate-50 p-4 text-sm text-slate-600">
+                  <p className="font-medium text-slate-900">Tap card for full allocation breakdown</p>
+                  <p className="mt-1 text-xs text-slate-500">View remaining balance, usage percentage, and request history.</p>
+                </div>
+
                 <p className="text-xs text-slate-300 mt-3">
                   {new Date(alloc.createdAt).toLocaleDateString()}
                 </p>
@@ -425,6 +471,16 @@ function BudgetAllocationContent() {
         </>
       )}
       {/* MODALS */}
+      <BudgetAllocationDetailModal
+        open={detailOpen}
+        loading={detailLoading}
+        allocation={selectedAllocation}
+        onClose={() => {
+          setDetailOpen(false);
+          setSelectedAllocation(null);
+        }}
+      />
+
       <BudgetAllocationUpsertModal
         open={modalOpen}
         allocationId={editId}

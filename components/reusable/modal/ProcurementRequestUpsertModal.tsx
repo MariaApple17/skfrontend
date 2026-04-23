@@ -221,7 +221,8 @@ export default function ProcurementRequestUpsertModal({
           }),
           api.get('/programs', {
             params: {
-              isActive: true,
+              fiscalYearId: selectedFiscalYearId,
+              approvalStatus: 'APPROVED',
               limit: 1000,
             },
           }),

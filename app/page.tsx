@@ -347,6 +347,10 @@ backgroundSize: "60px 60px"
             }
           </h1>
 
+          <p className="e4 text-[13px] uppercase tracking-[0.22em] text-white/45 text-center mb-4 relative z-10">
+            Bongbong, Trinidad, Bohol
+          </p>
+
           {/* Description & location */}
           {!loading && sp && (
             <div className="e4 flex flex-col items-center gap-1.5 mb-10 relative z-10">

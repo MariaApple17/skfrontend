@@ -275,7 +275,7 @@ const BudgetAllocationUpsertModal: React.FC<
       programs,
       String(selectedProgramCategoryId)
     ).filter(
-      (program) => program.allocationStatus === 'UPCOMING'
+      (program) => program.allocationStatus !== 'REJECTED'
     );
   }, [
     form.category,

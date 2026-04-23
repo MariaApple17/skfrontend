@@ -17,6 +17,7 @@ interface Program {
   committeeInCharge?: string
   beneficiaries?: string
   startDate?: string
+
   endDate?: string
   isActive?: boolean
   categoryId?: number | null
@@ -71,6 +72,51 @@ const EMPTY_FORM: ProgramForm = {
   isActive: false,
   categoryId: null,
   programId: null,
+}
+
+const normalizeCodeText = (value?: string | null) =>
+  value
+    ? value
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, ' ')
+        .split(/\s+/)
+        .join(' ')
+    : ''
+
+const getCodeFragment = (value: string, maxLength: number) =>
+  value
+    .split(/\s+/)
+    .map((word) => word.charAt(0))
+    .join('')
+    .slice(0, maxLength)
+    .padEnd(maxLength, 'X')
+
+const getHashedSuffix = (value: string, length = 4) => {
+  const hash = [...value].reduce(
+    (acc, char) => (acc * 31 + char.charCodeAt(0)) % 10000,
+    0
+  )
+
+  return hash.toString().padStart(length, '0')
+}
+
+const generateProgramCode = (
+  categoryName?: string | null,
+  programName?: string
+) => {
+  const category = normalizeCodeText(categoryName)
+  const name = normalizeCodeText(programName)
+
+  if (!category || !name) {
+    return ''
+  }
+
+  const categoryCode = getCodeFragment(category, 3)
+  const programCode = getCodeFragment(name, 4)
+  const hash = getHashedSuffix(`${category}:${name}`)
+
+  return `${categoryCode}-${programCode}-${hash}`
 }
 
 export default function ProgramUpsertModal({
@@ -158,8 +204,21 @@ export default function ProgramUpsertModal({
     !form.beneficiaries ||
     !form.startDate ||
     !form.endDate ||
-    (!isEdit && !form.code) ||
     invalidDate
+
+  const selectedCategoryName = useMemo(
+    () =>
+      PROGRAM_CATEGORIES.find(
+        (category) => category.id === form.categoryId
+      )?.name ?? null,
+    [form.categoryId]
+  )
+
+  const generatedProgramCode = useMemo(
+    () =>
+      generateProgramCode(selectedCategoryName, form.name),
+    [selectedCategoryName, form.name]
+  )
 
   /* ================= FILTERED PROGRAMS ================= */
 
@@ -190,7 +249,7 @@ export default function ProgramUpsertModal({
         isActive: form.isActive,
         categoryId: form.categoryId ?? null,
         programId: form.programId ?? null,
-        ...(isEdit ? {} : { code: form.code }),
+        ...(isEdit ? {} : { code: generatedProgramCode }),
       }
 
       if (isEdit) {
@@ -255,10 +314,9 @@ export default function ProgramUpsertModal({
               {!isEdit && (
                 <FlatInput
                   label="Program Code"
-                  value={form.code}
-                  onChange={(e) =>
-                    setForm({ ...form, code: e.target.value })
-                  }
+                  value={generatedProgramCode}
+                  placeholder="Select category and enter program name"
+                  disabled
                 />
               )}
 

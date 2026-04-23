@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import api from '@/components/lib/api';
 import { ReportPageShimmer } from '@/components/reusable/ui/PageShimmer';
 import FlatSelect from '@/components/reusable/ui/FlatSelect';
+import { CATEGORY_LABELS, type BudgetCategory } from '@/lib/budget';
 
 /* ================= MONTH OPTIONS ================= */
 
@@ -21,6 +22,7 @@ const MONTH_OPTIONS = [
 
 interface BudgetRow {
   id: number;
+  category?: BudgetCategory | null;
   allocatedAmount: string;
   usedAmount: string;
   classification: { name: string };
@@ -213,6 +215,7 @@ if (loading) {
               <thead>
                 <tr className="bg-gray-200 text-center">
                   <th className="border p-2">#</th>
+                  <th className="border p-2">Category</th>
                   <th className="border p-2">Classification</th>
                   <th className="border p-2">Object</th>
                   <th className="border p-2">Appropriation</th>
@@ -227,6 +230,11 @@ if (loading) {
                 {computed.map((r, index) => (
                   <tr key={r.id} className="text-center">
                     <td className="border p-2">{index + 1}</td>
+                    <td className="border p-2 text-center">
+                      {r.category
+                        ? CATEGORY_LABELS[r.category]
+                        : 'Unknown'}
+                    </td>
                     <td className="border p-2">{r.classification?.name}</td>
                     <td className="border p-2">{r.object?.name}</td>
                     <td className="border p-2 text-right">
@@ -247,7 +255,7 @@ if (loading) {
 
                 {/* TOTAL ROW */}
                 <tr className="font-bold bg-gray-100 text-center">
-                  <td colSpan={3} className="border p-2 text-right">
+                  <td colSpan={4} className="border p-2 text-right">
                     GRAND TOTAL
                   </td>
                   <td className="border p-2 text-right">

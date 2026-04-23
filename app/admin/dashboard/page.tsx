@@ -36,9 +36,9 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
   const [data, setData] = useState<any>(null);
   const [fiscalYears, setFiscalYears] = useState<any[]>([]);
-  const [selectedFy, setSelectedFy] = useState<'ACTIVE' | 'ALL' | number>('ACTIVE');
+  const [selectedFy, setSelectedFy] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-    const [isOffline, setIsOffline] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
   /* ================= FETCH CURRENT USER ================= */
   useEffect(() => {
     api.get('/auth/me')
@@ -68,7 +68,13 @@ export default function DashboardPage() {
   useEffect(() => {
     api.get('/fiscal-years')
       .then(res => {
-        if (res.data?.success) setFiscalYears(res.data.data);
+        if (res.data?.success) {
+          const fiscalYears = res.data.data;
+          setFiscalYears(fiscalYears);
+
+          const activeYear = fiscalYears.find((fy: any) => fy.isActive);
+          setSelectedFy(activeYear ? activeYear.id : fiscalYears[0]?.id ?? null);
+        }
       })
       .catch(() => setError('Failed to load fiscal years'));
   }, []);
@@ -77,8 +83,9 @@ export default function DashboardPage() {
   useEffect(() => {
     const params: any = {};
 
-    if (selectedFy === 'ALL') params.mode = 'ALL';
-    else if (selectedFy !== 'ACTIVE') params.fiscalYearId = selectedFy;
+    if (selectedFy !== null) {
+      params.fiscalYearId = selectedFy;
+    }
 
     api.get('/dashboard/overview', { params })
       .then(res => {
@@ -93,19 +100,11 @@ export default function DashboardPage() {
   if (!user || !data) return <DashboardPageShimmer />;
 
   /* ================= NORMALIZE ================= */
-  const isAllMode = data.mode === 'ALL';
-
   const fiscalYear = data.fiscalYear;
-const users = isAllMode
-  ? data.totals?.users ?? { total: 0 }
-  : data.users ?? { total: 0 };
+  const users = data.users ?? { total: 0 };
 
-  const budget = isAllMode
-    ? data.totals
-    : data.budget ?? { total: 0, allocated: 0, used: 0 };
-  const byCategory = !isAllMode
-    ? data.budget?.byCategory ?? {}
-    : {};
+  const budget = data.budget ?? { total: 0, allocated: 0, used: 0 };
+  const byCategory = data.budget?.byCategory ?? {};
 
   const unallocatedBudget = Math.max(
     budget.total - budget.allocated,
@@ -252,23 +251,14 @@ const lowUtilizationRisk =
                     Fiscal Year
                   </label>
                   <select
-                    value={selectedFy}
-                    onChange={e =>
-                      setSelectedFy(
-                        e.target.value === 'ALL'
-                          ? 'ALL'
-                          : e.target.value === 'ACTIVE'
-                          ? 'ACTIVE'
-                          : Number(e.target.value)
-                      )
-                    }
+                    value={selectedFy ?? ''}
+                    onChange={e => setSelectedFy(Number(e.target.value) || null)}
                     className="w-full rounded-xl bg-white/10 px-4 py-2.5 text-sm font-medium text-white outline-none border border-white/20 focus:border-white/40 transition-colors cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27white%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3e%3cpolyline points=%276 9 12 15 18 9%27%3e%3c/polyline%3e%3c/svg%3e')] bg-[length:20px] bg-[position:right_0.75rem_center] bg-no-repeat pr-10"
                     style={{
                       colorScheme: 'dark'
                     }}
                   >
-                    <option value="ACTIVE" className="bg-slate-800 text-white">Active Year</option>
-                    <option value="ALL" className="bg-slate-800 text-white">All Years</option>
+                    <option value="" className="bg-slate-800 text-white">Select year</option>
                     {fiscalYears.map(fy => (
                       <option key={fy.id} value={fy.id} className="bg-slate-800 text-white">
                         {fy.year} {fy.isActive ? '(Active)' : ''}
@@ -321,8 +311,7 @@ const lowUtilizationRisk =
           </div>
         </section>
 
-        {!isAllMode && (
-  <section className="mb-12 animate-fade-in opacity-0">
+        <section className="mb-12 animate-fade-in opacity-0">
     <div className="mb-6">
       <h2 className="font-display text-2xl text-slate-900 mb-1">
         Budget By Category
@@ -399,86 +388,9 @@ const lowUtilizationRisk =
   </div>
 )}
   </section>
-)}
-        {/* ================= CHARTS (ALL MODE) ================= */}
-        {isAllMode && (
-          <section className="mb-12 animate-fade-in opacity-0">
-            <div className="mb-6">
-              <h2 className="font-display text-2xl text-slate-900 mb-1">
-                Budget Analytics
-              </h2>
-              <p className="text-sm text-slate-500">
-                Comprehensive overview across all fiscal years
-              </p>
-            </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              <ChartCard title="Budget by Fiscal Year">
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={data.yearly}>
-                    <XAxis 
-                      dataKey="fiscalYear" 
-                      stroke="#94a3b8"
-                      style={{ fontSize: '12px' }}
-                    />
-                    <YAxis 
-                      stroke="#94a3b8"
-                      style={{ fontSize: '12px' }}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                        border: 'none',
-                        borderRadius: '12px',
-                        color: '#fff',
-                        fontSize: '12px'
-                      }}
-                    />
-                    <Bar dataKey="total" fill="#3b82f6" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="allocated" fill="#10b981" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="administrativeAmount" fill="#f59e0b" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="youthAmount" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartCard>
-
-              <ChartCard title="Utilization Trend">
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={data.yearly}>
-                    <XAxis 
-                      dataKey="fiscalYear" 
-                      stroke="#94a3b8"
-                      style={{ fontSize: '12px' }}
-                    />
-                    <YAxis 
-                      stroke="#94a3b8"
-                      style={{ fontSize: '12px' }}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                        border: 'none',
-                        borderRadius: '12px',
-                        color: '#fff',
-                        fontSize: '12px'
-                      }}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="utilizationRate" 
-                      stroke="#f59e0b" 
-                      strokeWidth={3}
-                      dot={{ fill: '#f59e0b', r: 4 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartCard>
-            </div>
-          </section>
-        )}
 
         {/* ================= APPROVAL STATUS ================= */}
-        {!isAllMode && (
           <section className="mb-12 animate-fade-in opacity-0">
             <div className="mb-6">
               <h2 className="font-display text-2xl text-slate-900 mb-1">
@@ -510,10 +422,9 @@ const lowUtilizationRisk =
               />
             </div>
           </section>
-        )}
+        
 
         {/* ================= ACTIVITY ================= */}
-        {!isAllMode && (
           <section className="grid grid-cols-1 xl:grid-cols-2 gap-6 animate-fade-in opacity-0">
             <ActivityCard title="Procurement Overview">
               {procurement.length === 0 ? (
@@ -553,7 +464,7 @@ const lowUtilizationRisk =
               )}
             </ActivityCard>
           </section>
-        )}
+        
 
         {/* ================= ERROR MODAL ================= */}
         <AlertModal

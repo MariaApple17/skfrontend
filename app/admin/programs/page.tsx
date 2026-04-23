@@ -16,6 +16,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 
 import api from '@/components/lib/api';
 import AuthGuard from '@/components/reusable/guard/AuthGuard';
+import ProgramDetailModal from '@/components/reusable/modal/ProgramDetailModal';
 import ProgramUpsertModal from '@/components/reusable/modal/ProgramUpsertModal';
 import { AdminPageShimmer } from '@/components/reusable/ui/PageShimmer';
 import FlatInput from '@/components/reusable/ui/FlatInput';
@@ -41,6 +42,17 @@ interface Program{
   endDate?:string
   approvalStatus:string
   documents?:ProgramDocument[]
+}
+
+interface ProgramDetail extends Program {
+  category?: string | null
+  fiscalYear?: { id:number; year:number } | null
+  allocatedBudget?: string | null
+  usedBudget?: string | null
+  remainingBudget?: string | null
+  createdBy?: { id:number; name:string } | null
+  createdAt?: string
+  updatedAt?: string | null
 }
 
 /* ================= STATUS ================= */
@@ -256,6 +268,27 @@ const [loading,setLoading]=useState(true)
 
 const [modalOpen,setModalOpen]=useState(false)
 const [editId,setEditId]=useState<number|null>(null)
+const [detailOpen,setDetailOpen]=useState(false)
+const [detailLoading,setDetailLoading]=useState(false)
+const [selectedProgram,setSelectedProgram]=useState<ProgramDetail | null>(null)
+
+const fetchProgramDetail = async (programId:number) => {
+  setDetailLoading(true)
+  try {
+    const res = await api.get(`/programs/${programId}`)
+    setSelectedProgram(res.data.data)
+  } catch (err) {
+    console.error('Failed to fetch program detail', err)
+    setSelectedProgram(null)
+  } finally {
+    setDetailLoading(false)
+  }
+}
+
+const openProgramDetail = async (programId:number) => {
+  setDetailOpen(true)
+  await fetchProgramDetail(programId)
+}
 
 /* ================= FETCH PROGRAMS ================= */
 
@@ -366,7 +399,18 @@ p.documents
 
 return(
 
-<div key={p.id} className="bg-white rounded-3xl shadow-lg overflow-hidden">
+<div
+  key={p.id}
+  role="button"
+  tabIndex={0}
+  onClick={() => openProgramDetail(p.id)}
+  onKeyDown={(event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      openProgramDetail(p.id)
+    }
+  }}
+  className="bg-white rounded-3xl shadow-lg overflow-hidden cursor-pointer focus:outline-none focus:ring-2 focus:ring-slate-300"
+>
 
 <ImageCarousel
 documents={p.documents ?? []}
@@ -413,23 +457,35 @@ uploadProof(p.id,file)
 
 )}
 
+<div className="mt-4 rounded-3xl bg-slate-50 p-3 text-xs text-slate-500">
+  Click card for full program details
 </div>
 
+</div>
 </div>
 
 )
-
 })}
 
 </div>
 
 )}
 
+<ProgramDetailModal
+  open={detailOpen}
+  loading={detailLoading}
+  program={selectedProgram}
+  onClose={() => {
+    setDetailOpen(false)
+    setSelectedProgram(null)
+  }}
+/>
+
 <ProgramUpsertModal
-open={modalOpen}
-programId={editId}
-onClose={()=>setModalOpen(false)}
-onSuccess={fetchPrograms}
+  open={modalOpen}
+  programId={editId}
+  onClose={() => setModalOpen(false)}
+  onSuccess={fetchPrograms}
 />
 
 </>

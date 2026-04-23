@@ -181,6 +181,11 @@ export default function DashboardLayout({
       icon: Wallet,
       children: [
         {
+          label: 'Budget Dashboard',
+          href: '/admin/budget-preparation/dashboard',
+          
+        },
+        {
           label: 'Budget Allocation',
           href: '/admin/budget-preparation/allocation',
           permission: 'BUDGET_ALLOCATION_VIEW',
@@ -190,6 +195,7 @@ export default function DashboardLayout({
           href: '/admin/budget-preparation/total',
           permission: 'BUDGET_TOTAL_VIEW',
         },
+
       ],
     },
     {
@@ -360,18 +366,6 @@ export default function DashboardLayout({
                   </p>
                   
 
-             <p className="text-xs text-slate-400 px-2 leading-relaxed line-clamp-2 break-words">
-  {systemProfile?.systemDescription ?? 'Management Platform'}
-</p>
-
-
-
-
-                  {systemProfile?.location && (
-                    <p className="text-[11px] text-slate-400 leading-relaxed truncate px-2">
-                      📍 {systemProfile.location}
-                    </p>
-                  )}
                 </div>
               )}
             </div>

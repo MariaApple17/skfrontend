@@ -157,6 +157,7 @@ export default function LoginPage() {
           {systemProfile?.systemDescription ??
             'A digital platform for managing SK budgets, programs, and reports while promoting transparency and accountability.'}
         </p>
+        Bongbong, Trinidad, Bohol
       </div>
 
       {/* LOGIN SECTION */}
